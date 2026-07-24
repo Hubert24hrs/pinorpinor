@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, Variants } from "framer-motion";
 import {
   ArrowRight, Sparkles, Star, TrendingUp, Users, Image as ImageIcon,
   Video, Shield, Zap, Globe, Heart, Camera, Music, Palette,
@@ -129,12 +129,12 @@ const CATEGORIES = [
 ];
 
 // ── Animation variants ─────────────────────────────────────────
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 32 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.4, 0.25, 1] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };
 
-const staggerChildren = {
+const staggerChildren: Variants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.1 } },
 };
@@ -233,9 +233,7 @@ export default function HomePage() {
     <div className="relative min-h-screen">
       <MouseSpotlight />
 
-      {/* ═══════════════════════════════════════════════
-          HERO SECTION
-      ═══════════════════════════════════════════════ */}
+      {/* HERO SECTION */}
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden gradient-hero pt-16">
         <GradientMesh />
         <ParticleBackground />
@@ -244,7 +242,6 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             {/* Left: Copy */}
             <div className="text-center lg:text-left">
-              {/* Badge */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -256,7 +253,6 @@ export default function HomePage() {
                 </Badge>
               </motion.div>
 
-              {/* Headline */}
               <motion.h1
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -272,7 +268,6 @@ export default function HomePage() {
                 <span className="gradient-text-accent">the World</span>
               </motion.h1>
 
-              {/* Sub */}
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -283,7 +278,6 @@ export default function HomePage() {
                 and connect with fans worldwide on the most premium creator platform.
               </motion.p>
 
-              {/* CTAs */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -307,7 +301,6 @@ export default function HomePage() {
                 </Link>
               </motion.div>
 
-              {/* Trust signals */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -329,14 +322,12 @@ export default function HomePage() {
 
             {/* Right: Creator Showcase */}
             <div className="relative">
-              {/* Floating card stack */}
               <div className="grid grid-cols-2 gap-3">
                 {FEATURED_CREATORS.map((creator, i) => (
                   <CreatorShowcaseCard key={creator.username} creator={creator} index={i} />
                 ))}
               </div>
 
-              {/* Floating stats badge */}
               <motion.div
                 animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -370,7 +361,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -388,9 +378,7 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          STATS SECTION
-      ═══════════════════════════════════════════════ */}
+      {/* STATS SECTION */}
       <section className="relative py-16 border-y border-white/6 bg-[#09090B]">
         <div className="absolute inset-0 bg-gradient-to-r from-[#FF2E88]/3 via-transparent to-[#7C3AED]/3 pointer-events-none" />
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -402,9 +390,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          FEATURES SECTION
-      ═══════════════════════════════════════════════ */}
+      {/* FEATURES SECTION */}
       <section className="relative py-24 overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
           style={{ background: "radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)" }} />
@@ -438,9 +424,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          CATEGORIES SECTION
-      ═══════════════════════════════════════════════ */}
+      {/* CATEGORIES SECTION */}
       <section className="py-24 bg-[#111827]/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -496,11 +480,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          CTA SECTION
-      ═══════════════════════════════════════════════ */}
+      {/* CTA SECTION */}
       <section className="relative py-32 overflow-hidden">
-        {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#FF2E88]/8 via-[#7C3AED]/6 to-transparent" />
         <div className="absolute inset-0" style={{
           backgroundImage: `radial-gradient(circle at 30% 50%, rgba(255,46,136,0.1) 0%, transparent 50%), radial-gradient(circle at 70% 50%, rgba(124,58,237,0.08) 0%, transparent 50%)`
@@ -513,7 +494,6 @@ export default function HomePage() {
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
           >
-            {/* Glow ring */}
             <div className="relative inline-block mb-8">
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#FF2E88] to-[#7C3AED] flex items-center justify-center mx-auto shadow-[0_0_60px_rgba(255,46,136,0.4)]">
                 <Sparkles className="w-10 h-10 text-white" />

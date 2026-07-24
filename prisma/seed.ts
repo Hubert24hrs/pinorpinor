@@ -1,11 +1,10 @@
 import { PrismaClient, UserRole, PostStatus } from "@prisma/client";
-import { hash } from "crypto";
+import { createHash } from "crypto";
 
 const prisma = new PrismaClient();
 
 function hashPassword(password: string): string {
-  // Simple SHA256 for seed data — in production NextAuth handles hashing
-  return hash("sha256", password).toString("hex");
+  return createHash("sha256").update(password).digest("hex");
 }
 
 async function main() {
@@ -58,7 +57,7 @@ async function main() {
   console.log(`✅ Created ${categories.length} categories`);
 
   // ── Admin User ──────────────────────────────────────────────
-  const admin = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: "admin@pinorpinor.com" },
     update: {},
     create: {
@@ -226,7 +225,6 @@ async function main() {
       },
     });
 
-    // Add hashtags to posts
     await prisma.postHashtag.create({
       data: {
         postId: post.id,
@@ -237,7 +235,6 @@ async function main() {
 
   console.log(`✅ Created demo posts`);
 
-  // ── Follow Relationships ─────────────────────────────────────
   for (let i = 0; i < creators.length; i++) {
     for (let j = 0; j < creators.length; j++) {
       if (i !== j && Math.random() > 0.4) {
@@ -252,9 +249,6 @@ async function main() {
 
   console.log(`✅ Created follow relationships`);
   console.log("\n🎉 Seeding complete!");
-  console.log("\nDemo accounts (password: pinorpinor123):");
-  console.log("  admin@pinorpinor.com — Super Admin");
-  creatorData.forEach((c) => console.log(`  ${c.email} — Creator (@${c.username})`));
 }
 
 main()

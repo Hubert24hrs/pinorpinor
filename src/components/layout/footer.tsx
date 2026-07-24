@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Heart, Twitter, Instagram, Github } from "lucide-react";
+import { Sparkles, Heart, Globe, Camera, Share2 } from "lucide-react";
 
 const FOOTER_LINKS = {
   Platform: [
@@ -53,9 +53,9 @@ export function Footer() {
             {/* Social Icons */}
             <div className="flex items-center gap-3">
               {[
-                { icon: Twitter, href: "#", label: "Twitter" },
-                { icon: Instagram, href: "#", label: "Instagram" },
-                { icon: Github, href: "#", label: "GitHub" },
+                { icon: Globe, href: "#", label: "Web" },
+                { icon: Camera, href: "#", label: "Media" },
+                { icon: Share2, href: "#", label: "Share" },
               ].map(({ icon: Icon, href, label }) => (
                 <a
                   key={label}

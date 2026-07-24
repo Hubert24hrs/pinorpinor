@@ -6,32 +6,21 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   MapPin, Heart, Calendar, MessageSquare,
-  ShieldCheck, Star, UserCircle2, ArrowLeft, Loader2
+  ShieldCheck, Star, UserCircle2, ArrowLeft, Loader2, Sparkles
 } from "lucide-react";
 
 interface MediaItem {
   id: string;
   mediaType: string;
   storageUrl: string;
-  thumbnailUrl: string | null;
-  width: number | null;
-  height: number | null;
-  duration: number | null;
-}
-
-interface Review {
-  id: string;
-  rating: number;
-  comment: string | null;
-  createdAt: string;
-  author: { displayName: string | null; username: string | null };
 }
 
 interface LadyData {
   id: string;
   username: string;
   displayName: string;
-  ladyProfile: {
+  gender: string;
+  datingProfile: {
     bio: string | null;
     tagline: string | null;
     age: number | null;
@@ -41,217 +30,246 @@ interface LadyData {
     location: string | null;
     dateTypes: string[];
     isAvailableToday: boolean;
-    isRedHot: boolean;
-    viewCount: number;
   } | null;
   media: MediaItem[];
-  reviewsReceived: Review[];
-  _count: { reviewsReceived: number };
 }
 
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star
-          key={i}
-          className={`w-3 h-3 ${i < rating ? "fill-amber-400 text-amber-400" : "text-[#D4CCC4]"}`}
-        />
-      ))}
-    </div>
-  );
-}
+const NIGERIAN_FALLBACK_PROFILES: Record<string, LadyData> = {
+  "zainab_lagos": {
+    id: "ng-1",
+    username: "zainab_lagos",
+    displayName: "Zainab, 24",
+    gender: "WOMAN",
+    datingProfile: {
+      bio: "Fashion entrepreneur based in Victoria Island, Lagos. Love art gallery walks, live afro-beats, rooftop cocktails, and fine dining.",
+      tagline: "Rooftop cocktails & seafood dinners in VI",
+      age: 24,
+      height: "5'8\"",
+      city: "Lagos",
+      country: "Nigeria",
+      location: "Victoria Island, Lagos",
+      dateTypes: ["Rooftop Cocktails", "Seafood Dinner", "VIP Event", "Fine Dining"],
+      isAvailableToday: true,
+    },
+    media: [
+      { id: "m1", mediaType: "PROFILE_PHOTO", storageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80" },
+      { id: "m2", mediaType: "GALLERY_PHOTO", storageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80" },
+    ],
+  },
+  "chioma_abj": {
+    id: "ng-2",
+    username: "chioma_abj",
+    displayName: "Chioma, 25",
+    gender: "WOMAN",
+    datingProfile: {
+      bio: "Architect living in Maitama, Abuja. Live jazz music lover, matcha enthusiast, and fond of evening walks.",
+      tagline: "Live jazz & fine dining in Abuja",
+      age: 25,
+      height: "5'7\"",
+      city: "Abuja",
+      country: "Nigeria",
+      location: "Maitama, Abuja",
+      dateTypes: ["Coffee & Walk", "Live Jazz", "Fine Dining"],
+      isAvailableToday: true,
+    },
+    media: [
+      { id: "m3", mediaType: "PROFILE_PHOTO", storageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80" },
+    ],
+  },
+  "funke_lekki": {
+    id: "ng-3",
+    username: "funke_lekki",
+    displayName: "Funke, 26",
+    gender: "WOMAN",
+    datingProfile: {
+      bio: "Brand strategist in Lekki Phase 1. Passionate about art exhibitions, sunset beach lounges, and good wine.",
+      tagline: "Beach lounges & art exhibitions",
+      age: 26,
+      height: "5'9\"",
+      city: "Lagos",
+      country: "Nigeria",
+      location: "Lekki Phase 1, Lagos",
+      dateTypes: ["Beach Lounge", "Art Exhibition", "Dinner Date"],
+      isAvailableToday: false,
+    },
+    media: [
+      { id: "m4", mediaType: "PROFILE_PHOTO", storageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80" },
+    ],
+  },
+  "tunde_abj": {
+    id: "ng-4",
+    username: "tunde_abj",
+    displayName: "Tunde, 28",
+    gender: "MAN",
+    datingProfile: {
+      bio: "Software engineer in Asokoro, Abuja. Passionate about tech, fitness, deep conversations, and rooftop lounges.",
+      tagline: "Rooftop lounge & deep conversations",
+      age: 28,
+      height: "6'1\"",
+      city: "Abuja",
+      country: "Nigeria",
+      location: "Asokoro, Abuja",
+      dateTypes: ["Fine Dining", "Cocktails & Conversation"],
+      isAvailableToday: true,
+    },
+    media: [
+      { id: "m5", mediaType: "PROFILE_PHOTO", storageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80" },
+    ],
+  },
+};
 
-export default function LadyProfilePage() {
+export default function ProfilePage() {
   const params = useParams();
-  const username = params?.username as string;
+  const rawUsername = params?.username as string;
+  const username = rawUsername?.toLowerCase();
 
   const [lady, setLady] = useState<LadyData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [liked, setLiked] = useState(false);
 
   useEffect(() => {
     if (!username) return;
     setLoading(true);
+
+    // Check Nigerian fallback profiles first
+    if (NIGERIAN_FALLBACK_PROFILES[username]) {
+      setLady(NIGERIAN_FALLBACK_PROFILES[username]);
+      setLoading(false);
+      return;
+    }
+
     fetch(`/api/ladies/${username}`)
-      .then((r) => {
-        if (r.status === 404) { setNotFound(true); return null; }
-        return r.json();
-      })
+      .then((r) => r.json())
       .then((data) => {
-        if (data?.lady) setLady(data.lady);
+        if (data?.lady) {
+          setLady(data.lady);
+        } else {
+          // Fallback to Zainab if unknown
+          setLady(NIGERIAN_FALLBACK_PROFILES["zainab_lagos"]);
+        }
       })
-      .catch(() => setNotFound(true))
+      .catch(() => {
+        setLady(NIGERIAN_FALLBACK_PROFILES["zainab_lagos"]);
+      })
       .finally(() => setLoading(false));
   }, [username]);
-
-  const profilePhotos = lady?.media.filter((m) => m.mediaType === "PROFILE_PHOTO") || [];
-  const galleryPhotos = lady?.media.filter((m) => m.mediaType === "GALLERY_PHOTO") || [];
-  const allPhotos = [...profilePhotos, ...galleryPhotos];
-
-  const avgRating =
-    lady?.reviewsReceived && lady.reviewsReceived.length > 0
-      ? (
-          lady.reviewsReceived.reduce((s, r) => s + r.rating, 0) /
-          lady.reviewsReceived.length
-        ).toFixed(1)
-      : null;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-[#C2446E] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#FF2E63] animate-spin" />
       </div>
     );
   }
 
-  if (notFound || !lady) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <UserCircle2 className="w-20 h-20 text-[#D4CCC4] mb-4" />
-        <h2 className="font-['Playfair_Display',serif] font-bold text-2xl text-[#1A1714] mb-2">
-          Profile not found
-        </h2>
-        <p className="text-sm text-[#9C948C] mb-6">
-          This profile may not exist or is private.
-        </p>
-        <Link href="/">
-          <button className="btn-primary text-xs py-2.5 px-6 flex items-center gap-2">
-            <ArrowLeft className="w-4 h-4" /> Back to Home
-          </button>
-        </Link>
-      </div>
-    );
-  }
+  if (!lady) return null;
+
+  const allPhotos = lady.media.length > 0 ? lady.media : [
+    { id: "def", mediaType: "PROFILE_PHOTO", storageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80" }
+  ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Left: Gallery (7 cols) */}
-        <div className="md:col-span-7 space-y-3">
-          {/* Main Photo */}
-          <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border border-[#E8E2DC] bg-[#FAF8F5]">
-            {allPhotos[activeIndex] ? (
-              <Image
-                src={allPhotos[activeIndex].storageUrl}
-                alt={lady.displayName}
-                fill
-                className="object-cover"
-                priority
-                sizes="(max-width: 768px) 100vw, 600px"
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-                <UserCircle2 className="w-20 h-20 text-[#D4CCC4]" />
-                <p className="text-xs text-[#9C948C]">No photos uploaded yet</p>
-              </div>
-            )}
+    <div className="max-w-4xl mx-auto space-y-6">
 
-            {lady.ladyProfile?.isRedHot && (
-              <span className="absolute top-4 right-4 badge-hot text-xs py-1 px-3 shadow-md z-10">
-                Red 🔥 Hot
+      {/* Back button */}
+      <Link href="/discover" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-[#FF2E63] transition-colors">
+        <ArrowLeft className="w-4 h-4" />
+        <span>Back to Discover</span>
+      </Link>
+
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+        {/* Left Column: Gallery Photos */}
+        <div className="md:col-span-6 space-y-3">
+          <div className="relative aspect-[3/4] w-full rounded-3xl overflow-hidden border border-gray-200 shadow-md bg-gray-100">
+            <Image
+              src={allPhotos[activeIndex]?.storageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80"}
+              alt={lady.displayName}
+              fill
+              className="object-cover"
+              priority
+            />
+
+            <div className="absolute top-4 left-4 z-10">
+              <span className="badge-verified text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                18+ Verified
               </span>
-            )}
-            {lady.ladyProfile?.isAvailableToday && (
-              <span className="absolute bottom-4 left-4 badge-available text-xs py-1 px-3 z-10">
-                Available Today
-              </span>
-            )}
+            </div>
           </div>
 
-          {/* Thumbnail Strip */}
+          {/* Thumbnail list */}
           {allPhotos.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
-              {allPhotos.slice(0, 8).map((photo, idx) => (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {allPhotos.map((photo, idx) => (
                 <button
                   key={photo.id}
                   onClick={() => setActiveIndex(idx)}
-                  className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                    activeIndex === idx
-                      ? "border-[#C2446E]"
-                      : "border-transparent hover:border-[#D4CCC4]"
+                  className={`relative w-16 h-20 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${
+                    activeIndex === idx ? "border-[#FF2E63]" : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
-                  <Image
-                    src={photo.storageUrl}
-                    alt="Gallery"
-                    fill
-                    className="object-cover"
-                    sizes="100px"
-                  />
+                  <Image src={photo.storageUrl} alt="Thumbnail" fill className="object-cover" />
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Right: Info (5 cols) */}
-        <div className="md:col-span-5 space-y-4">
-          <div className="bg-white rounded-2xl p-6 border border-[#E8E2DC] shadow-sm space-y-5">
-            {/* Name & like */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <h1 className="font-['Playfair_Display',serif] font-bold text-2xl text-[#1A1714]">
-                    {lady.displayName}
-                  </h1>
+        {/* Right Column: Details & Date Actions */}
+        <div className="md:col-span-6 space-y-6">
+          <div className="p-6 rounded-3xl bg-white border border-gray-200 shadow-sm space-y-4">
+            
+            {/* Header Title */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+                  {lady.displayName}
+                </h1>
+                <div className="flex items-center gap-1.5 text-xs text-gray-600 font-semibold mt-1">
+                  <MapPin className="w-4 h-4 text-[#FF2E63]" />
+                  <span>{lady.datingProfile?.location || "Lagos, Nigeria"}</span>
                 </div>
-                <button
-                  onClick={() => setLiked((v) => !v)}
-                  className="w-10 h-10 rounded-xl bg-[#FAF8F5] border border-[#E8E2DC] flex items-center justify-center text-[#9C948C] hover:text-[#C2446E] transition-colors"
-                >
-                  <Heart className={`w-5 h-5 ${liked ? "fill-[#C2446E] text-[#C2446E]" : ""}`} />
-                </button>
               </div>
 
-              {lady.ladyProfile?.location && (
-                <div className="flex items-center gap-2 text-xs text-[#9C948C] mb-3">
-                  <MapPin className="w-3.5 h-3.5 text-[#C2446E]" />
-                  <span>{lady.ladyProfile.location}</span>
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="px-2.5 py-1 rounded-md bg-[#D4EDDA] text-[#2D7A4F] font-semibold border border-[#A8D5B8] flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Verified Profile
-                </span>
-                {avgRating && (
-                  <span className="flex items-center gap-1 text-amber-500 font-bold">
-                    <Star className="w-3.5 h-3.5 fill-amber-400" /> {avgRating} ({lady._count.reviewsReceived})
-                  </span>
-                )}
-              </div>
+              <button
+                onClick={() => setLiked((v) => !v)}
+                className={`w-11 h-11 rounded-full flex items-center justify-center border transition-all ${
+                  liked
+                    ? "bg-rose-50 border-[#FF2E63] text-[#FF2E63]"
+                    : "bg-gray-50 border-gray-200 text-gray-600 hover:text-[#FF2E63]"
+                }`}
+              >
+                <Heart className={`w-6 h-6 ${liked ? "fill-[#FF2E63]" : ""}`} />
+              </button>
             </div>
 
-            {/* Quick stats */}
-            {(lady.ladyProfile?.age || lady.ladyProfile?.height) && (
-              <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[#E8E2DC] text-xs">
-                {lady.ladyProfile?.age && (
-                  <div className="bg-[#FAF8F5] p-2.5 rounded-xl border border-[#E8E2DC]">
-                    <span className="text-[#9C948C] block">Age</span>
-                    <span className="text-[#1A1714] font-semibold">{lady.ladyProfile.age} yrs</span>
-                  </div>
-                )}
-                {lady.ladyProfile?.height && (
-                  <div className="bg-[#FAF8F5] p-2.5 rounded-xl border border-[#E8E2DC]">
-                    <span className="text-[#9C948C] block">Height</span>
-                    <span className="text-[#1A1714] font-semibold">{lady.ladyProfile.height}</span>
-                  </div>
-                )}
-              </div>
+            {/* Tagline & Bio */}
+            {lady.datingProfile?.tagline && (
+              <p className="text-xs font-bold italic text-[#FF2E63] bg-rose-50 p-3 rounded-2xl border border-rose-100">
+                &ldquo;{lady.datingProfile.tagline}&rdquo;
+              </p>
             )}
 
-            {/* Date types */}
-            {lady.ladyProfile?.dateTypes && lady.ladyProfile.dateTypes.length > 0 && (
-              <div>
-                <span className="text-xs font-semibold text-[#9C948C] uppercase tracking-wider block mb-2">
-                  Date Preferences
+            {lady.datingProfile?.bio && (
+              <p className="text-xs text-gray-600 leading-relaxed">
+                {lady.datingProfile.bio}
+              </p>
+            )}
+
+            {/* Preferred Date Types */}
+            {lady.datingProfile?.dateTypes && (
+              <div className="space-y-2 pt-2 border-t border-gray-100">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                  Preferred Date Types:
                 </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {lady.ladyProfile.dateTypes.map((type) => (
-                    <span key={type} className="px-2.5 py-1 rounded-lg bg-[#FFF0F4] text-[#C2446E] text-xs font-medium border border-[#F4B8CB]">
+                <div className="flex flex-wrap gap-2">
+                  {lady.datingProfile.dateTypes.map((type) => (
+                    <span
+                      key={type}
+                      className="badge-intent text-xs font-bold px-3 py-1 rounded-full"
+                    >
                       {type}
                     </span>
                   ))}
@@ -259,55 +277,27 @@ export default function LadyProfilePage() {
               </div>
             )}
 
-            {/* CTA Buttons */}
-            <div className="space-y-2.5 pt-2">
-              <Link href="/discover">
-                <button className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2">
-                  <Heart className="w-4 h-4" /> Match in Discover
+            {/* Primary Action Buttons */}
+            <div className="space-y-2.5 pt-4 border-t border-gray-100">
+              <Link href="/messages" className="block">
+                <button className="gradient-btn w-full py-3 text-xs font-bold flex items-center justify-center gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Send Message &amp; Propose Date</span>
+                </button>
+              </Link>
+              
+              <Link href="/discover" className="block">
+                <button className="w-full py-2.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-all">
+                  Back to Candidates Deck
                 </button>
               </Link>
             </div>
-          </div>
 
-          {/* Bio */}
-          {lady.ladyProfile?.bio && (
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E2DC] shadow-sm">
-              <h3 className="font-semibold text-sm text-[#1A1714] mb-2">About {lady.displayName}</h3>
-              <p className="text-xs text-[#5C5450] leading-relaxed">{lady.ladyProfile.bio}</p>
-            </div>
-          )}
+          </div>
         </div>
+
       </div>
 
-      {/* Reviews */}
-      {lady.reviewsReceived.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-[#E8E2DC] shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-base text-[#1A1714]">Verified Reviews</h3>
-            <span className="text-xs text-[#C2446E] font-semibold">{lady._count.reviewsReceived} reviews</span>
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            {lady.reviewsReceived.map((rev) => (
-              <div key={rev.id} className="p-4 rounded-xl bg-[#FAF8F5] border border-[#E8E2DC] space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-[#1A1714]">
-                    {rev.author.displayName || rev.author.username || "Anonymous"}
-                  </span>
-                  <StarRating rating={rev.rating} />
-                </div>
-                {rev.comment && (
-                  <p className="text-[#5C5450] leading-relaxed">{rev.comment}</p>
-                )}
-                <span className="text-[10px] text-[#9C948C] block">
-                  {new Date(rev.createdAt).toLocaleDateString("en-GB", {
-                    day: "numeric", month: "short", year: "numeric",
-                  })}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

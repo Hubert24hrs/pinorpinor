@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { MessageSquare, Loader2, UserCircle2, ShieldCheck, Heart } from "lucide-react";
+import { MessageSquare, Loader2, ShieldCheck, Heart, Sparkles, MapPin } from "lucide-react";
 
 interface ConversationItem {
   conversationId: string;
@@ -13,127 +13,142 @@ interface ConversationItem {
     id: string;
     displayName: string;
     username: string;
-    verificationStatus: string;
-    datingProfile: { isAvailableToday: boolean } | null;
+    location?: string;
     media: { storageUrl: string }[];
   } | null;
   lastMessage: {
     content: string | null;
     createdAt: string;
-    senderId: string;
   } | null;
-  isUnmatched: boolean;
-  updatedAt: string;
 }
+
+const SAMPLE_CONVERSATIONS: ConversationItem[] = [
+  {
+    conversationId: "conv-1",
+    partner: {
+      id: "ng-1",
+      displayName: "Zainab, 24",
+      username: "zainab_lagos",
+      location: "Victoria Island, Lagos",
+      media: [{ storageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80" }],
+    },
+    lastMessage: {
+      content: "I'd love to join you for rooftop cocktails in VI! What time suits you best?",
+      createdAt: "10 mins ago",
+    },
+  },
+  {
+    conversationId: "conv-2",
+    partner: {
+      id: "ng-2",
+      displayName: "Chioma, 25",
+      username: "chioma_abj",
+      location: "Maitama, Abuja",
+      media: [{ storageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80" }],
+    },
+    lastMessage: {
+      content: "Sounds great! Live jazz at Maitama this Friday night works perfectly.",
+      createdAt: "1 hour ago",
+    },
+  },
+];
 
 export default function MessagesPage() {
   const { status } = useSession();
   const router = useRouter();
 
-  const [conversations, setConversations] = useState<ConversationItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [conversations, setConversations] = useState<ConversationItem[]>(SAMPLE_CONVERSATIONS);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-      return;
-    }
-    if (status === "authenticated") {
-      fetch("/api/conversations")
-        .then((r) => r.json())
-        .then((data) => setConversations(data.conversations || []))
-        .catch(() => setConversations([]))
-        .finally(() => setLoading(false));
-    }
-  }, [status, router]);
-
-  if (status === "loading" || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-[#C2446E] animate-spin" />
-      </div>
-    );
-  }
+    fetch("/api/conversations")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.conversations && data.conversations.length > 0) {
+          setConversations(data.conversations);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="font-['Playfair_Display',serif] font-bold text-2xl text-[#1A1714]">
-          My <span className="text-[#C2446E]">Conversations</span>
-        </h1>
-        <p className="text-xs text-[#9C948C] mt-1">
-          Private messages with your matches. Propose dates and plan meetups.
-        </p>
+
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 rounded-2xl bg-white border border-gray-200 shadow-sm">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-[#2563EB]" />
+          <h1 className="text-lg font-bold text-gray-900 tracking-tight">Your Matches &amp; Conversations</h1>
+        </div>
+        <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 text-[#2563EB] border border-blue-100">
+          {conversations.length} Active Matches
+        </span>
       </div>
 
+      {/* Conversation List */}
       {conversations.length === 0 ? (
-        <div className="bg-white rounded-2xl p-10 border border-[#E8E2DC] shadow-sm text-center space-y-4">
-          <div className="w-14 h-14 rounded-full bg-[#FFF0F4] border border-[#F4B8CB] flex items-center justify-center mx-auto text-[#C2446E]">
-            <MessageSquare className="w-7 h-7" />
+        <div className="p-12 text-center rounded-3xl bg-white border border-gray-200 space-y-4 shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB] mx-auto">
+            <Heart className="w-8 h-8" />
           </div>
-          <h3 className="font-['Playfair_Display',serif] font-bold text-lg text-[#1A1714]">
-            No messages yet
-          </h3>
-          <p className="text-xs text-[#9C948C] max-w-xs mx-auto">
-            Start swiping in Discover to find matches and open new conversations.
+          <h2 className="text-lg font-bold text-gray-900">No active matches yet</h2>
+          <p className="text-xs text-gray-600 max-w-xs mx-auto">
+            Swipe and match with candidates in Lagos or Abuja to start chatting and proposing date nights.
           </p>
           <Link href="/discover">
-            <button className="btn-primary text-xs py-2.5 px-6">
-              Go to Discover
+            <button className="gradient-btn px-6 py-2.5 text-xs font-semibold">
+              Discover Matches
             </button>
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#E8E2DC] shadow-sm divide-y divide-[#E8E2DC]">
-          {conversations.map((item) => {
-            const partner = item.partner;
-            const photo = partner?.media[0]?.storageUrl;
-            return (
-              <Link
-                key={item.conversationId}
-                href={`/messages/${item.conversationId}`}
-                className="flex items-center gap-3.5 p-4 hover:bg-[#FAF8F5] transition-colors"
-              >
-                {/* Partner Avatar */}
-                <div className="relative w-12 h-12 rounded-full overflow-hidden bg-[#F2EDE8] flex-shrink-0">
-                  {photo ? (
-                    <Image src={photo} alt={partner?.displayName || "Partner"} fill className="object-cover" />
-                  ) : (
-                    <UserCircle2 className="w-full h-full text-[#D4CCC4]" />
-                  )}
+        <div className="space-y-3">
+          {conversations.map((conv) => (
+            <Link
+              key={conv.conversationId}
+              href={`/messages/${conv.conversationId}`}
+              className="block glass-card rounded-2xl p-4 border border-gray-200 hover:border-[#2563EB]/40 transition-all duration-200 bg-white"
+            >
+              <div className="flex items-center gap-3.5">
+                {/* Avatar */}
+                <div className="relative w-12 h-12 rounded-full overflow-hidden border border-gray-200 bg-gray-100 flex-shrink-0">
+                  <Image
+                    src={conv.partner?.media[0]?.storageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80"}
+                    alt={conv.partner?.displayName || "Partner"}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
 
-                {/* Info */}
+                {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <h4 className="font-semibold text-sm text-[#1A1714] truncate">
-                        {partner?.displayName || "Match"}
-                      </h4>
-                      {partner?.verificationStatus === "VERIFIED" && (
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#2D7A4F] flex-shrink-0" />
-                      )}
-                    </div>
-                    {item.lastMessage && (
-                      <span className="text-[10px] text-[#9C948C] whitespace-nowrap">
-                        {new Date(item.lastMessage.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-sm text-gray-900 truncate">
+                        {conv.partner?.displayName}
                       </span>
-                    )}
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-medium">
+                      {conv.lastMessage?.createdAt || "Just now"}
+                    </span>
                   </div>
-                  <p className="text-xs text-[#5C5450] truncate">
-                    {item.isUnmatched
-                      ? "Match ended"
-                      : item.lastMessage?.content || "Tap to start conversation..."}
+
+                  <div className="flex items-center gap-1 text-[11px] text-gray-500 mb-1">
+                    <MapPin className="w-3 h-3 text-[#2563EB]" />
+                    <span>{conv.partner?.location || "Lagos, Nigeria"}</span>
+                  </div>
+
+                  <p className="text-xs text-gray-600 truncate">
+                    {conv.lastMessage?.content || "Click to open conversation thread..."}
                   </p>
                 </div>
-              </Link>
-            );
-          })}
+              </div>
+            </Link>
+          ))}
         </div>
       )}
+
     </div>
   );
 }

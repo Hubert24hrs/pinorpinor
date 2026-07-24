@@ -83,7 +83,7 @@ export default function DashboardPage() {
   if (status === "loading" || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-[#C2446E] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#2563EB] animate-spin" />
       </div>
     );
   }
@@ -124,7 +124,7 @@ export default function DashboardPage() {
       {/* Page Header */}
       <div>
         <h1 className="font-['Playfair_Display',serif] font-bold text-2xl text-[#1A1714]">
-          My <span className="text-[#C2446E]">Profile & Media</span>
+          My <span className="text-[#2563EB]">Profile & Media</span>
         </h1>
         <p className="text-xs text-[#9C948C] mt-1">
           Manage your photos, bio, preferences, and availability.
@@ -139,8 +139,8 @@ export default function DashboardPage() {
             onClick={() => setTab(id as any)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all flex-1 justify-center ${
               tab === id
-                ? "bg-[#C2446E] text-white shadow-sm"
-                : "text-[#5C5450] hover:text-[#1A1714]"
+                ? "bg-gradient-to-r from-[#2563EB] to-[#06B6D4] text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
             }`}
           >
             <Icon className="w-3.5 h-3.5" />
@@ -238,7 +238,7 @@ export default function DashboardPage() {
                 onClick={() => setForm((f) => ({ ...f, isDiscoverable: !f.isDiscoverable }))}
               >
                 {form.isDiscoverable ? (
-                  <ToggleRight className="w-8 h-8 text-[#C2446E]" />
+                  <ToggleRight className="w-8 h-8 text-[#2563EB]" />
                 ) : (
                   <ToggleLeft className="w-8 h-8 text-[#9C948C]" />
                 )}
@@ -254,7 +254,7 @@ export default function DashboardPage() {
                 type="text"
                 value={form.displayName}
                 onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl px-4 py-2.5 text-sm text-[#1A1714] focus:border-[#C2446E] outline-none"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 outline-none"
               />
             </div>
             <div>
@@ -264,7 +264,7 @@ export default function DashboardPage() {
                 placeholder="e.g. Coffee & conversations ✨"
                 value={form.tagline}
                 onChange={(e) => setForm((f) => ({ ...f, tagline: e.target.value }))}
-                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl px-4 py-2.5 text-sm text-[#1A1714] focus:border-[#C2446E] outline-none"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 outline-none"
               />
             </div>
             <div>
@@ -274,7 +274,7 @@ export default function DashboardPage() {
                 placeholder="e.g. Lagos"
                 value={form.city}
                 onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl px-4 py-2.5 text-sm text-[#1A1714] focus:border-[#C2446E] outline-none"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 outline-none"
               />
             </div>
             <div>
@@ -284,7 +284,7 @@ export default function DashboardPage() {
                 placeholder="e.g. 5ft 9in"
                 value={form.height}
                 onChange={(e) => setForm((f) => ({ ...f, height: e.target.value }))}
-                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl px-4 py-2.5 text-sm text-[#1A1714] focus:border-[#C2446E] outline-none"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 outline-none"
               />
             </div>
           </div>
@@ -317,17 +317,17 @@ export default function DashboardPage() {
 
           {/* Date Preferences */}
           <div>
-            <label className="block text-xs font-medium text-[#5C5450] mb-2">Date Preferences</label>
+            <label className="block text-xs font-medium text-gray-700 mb-2">Date Preferences</label>
             <div className="flex flex-wrap gap-2">
               {DATE_TYPE_OPTIONS.map((type) => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => toggleDateType(type)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     form.dateTypes.includes(type)
-                      ? "bg-[#FFF0F4] text-[#C2446E] border border-[#F4B8CB]"
-                      : "bg-[#FAF8F5] text-[#5C5450] border border-[#E8E2DC] hover:border-[#C2446E]"
+                      ? "bg-blue-50 text-[#2563EB] border border-[#BFDBFE]"
+                      : "bg-gray-50 text-gray-600 border border-gray-200 hover:border-[#2563EB]"
                   }`}
                 >
                   {type}
@@ -340,7 +340,7 @@ export default function DashboardPage() {
           <button
             onClick={saveProfile}
             disabled={saving}
-            className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+            className="gradient-btn w-full py-3.5 text-sm flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
           >
             {saving ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, MapPin, CheckCircle, ShieldCheck } from "lucide-react";
+import { Heart, MapPin, CheckCircle } from "lucide-react";
 
 export interface Lady {
   id: string;

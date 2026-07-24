@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, CheckCircle } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Share2, MoreHorizontal } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, VerificationBadge } from "@/components/ui/badge";
 import { formatNumber, formatRelativeTime } from "@/lib/utils";

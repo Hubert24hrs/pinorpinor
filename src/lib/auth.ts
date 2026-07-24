@@ -1,72 +1,49 @@
-import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
-import Facebook from "next-auth/providers/facebook";
-import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import { AuthOptions, getServerSession as getNextAuthSession } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { compare } from "bcryptjs";
-import { z } from "zod";
 
-const credentialsSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
-  secret: process.env.AUTH_SECRET,
-
+export const authOptions: AuthOptions = {
   providers: [
-    // ── Google OAuth ──────────────────────────────────────────
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID!,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
-    }),
-
-    // ── Facebook OAuth ─────────────────────────────────────────
-    Facebook({
-      clientId: process.env.AUTH_FACEBOOK_ID!,
-      clientSecret: process.env.AUTH_FACEBOOK_SECRET!,
-    }),
-
-    // ── Email + Password ───────────────────────────────────────
-    Credentials({
+    CredentialsProvider({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const parsed = credentialsSchema.safeParse(credentials);
-        if (!parsed.success) return null;
-
-        const { email, password } = parsed.data;
+        if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
-          where: { email },
+          where: { email: credentials.email },
           select: {
             id: true,
             email: true,
-            name: true,
+            displayName: true,
             username: true,
-            image: true,
-            role: true,
-            verificationStatus: true,
             passwordHash: true,
-            emailVerified: true,
+            role: true,
+            gender: true,
             isActive: true,
             isBanned: true,
+            media: {
+              where: { mediaType: "PROFILE_PHOTO" },
+              take: 1,
+              select: { storageUrl: true },
+            },
           },
         });
 
         if (!user || !user.passwordHash) return null;
         if (!user.isActive || user.isBanned) return null;
 
-        const isValid = await compare(password, user.passwordHash);
-        if (!isValid) return null;
+        const passwordMatch = await bcrypt.compare(
+          credentials.password,
+          user.passwordHash
+        );
+        if (!passwordMatch) return null;
 
-        // Update last login
         await prisma.user.update({
           where: { id: user.id },
           data: { lastLoginAt: new Date() },
@@ -75,86 +52,46 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
-          image: user.image,
+          name: user.displayName,
           username: user.username,
-          role: user.role,
-          verificationStatus: user.verificationStatus,
-          emailVerified: user.emailVerified,
+          role: user.role as string,
+          gender: user.gender as string | null,
+          image: user.media[0]?.storageUrl ?? null,
         };
       },
     }),
   ],
-
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.username = (user as any).username;
-        token.role = (user as any).role;
-        token.verificationStatus = (user as any).verificationStatus;
+        token.role = user.role;
+        token.username = user.username;
+        token.gender = user.gender;
       }
-
-      // Refresh role from DB on each token refresh (for role updates)
-      if (token.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { role: true, username: true, verificationStatus: true, isActive: true, isBanned: true },
-        });
-        if (dbUser) {
-          token.role = dbUser.role;
-          token.username = dbUser.username;
-          token.verificationStatus = dbUser.verificationStatus;
-        }
-      }
-
       return token;
     },
-
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.username = token.username as string;
-        session.user.role = token.role as string;
-        session.user.verificationStatus = token.verificationStatus as string;
+        if (token.id) session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.username = token.username;
+        session.user.gender = token.gender;
       }
       return session;
     },
-
-    async signIn({ user, account }) {
-      // Allow OAuth sign-ins without email verification requirement
-      if (account?.provider !== "credentials") return true;
-
-      // For credentials, require email verification
-      const dbUser = await prisma.user.findUnique({
-        where: { email: user.email! },
-        select: { emailVerified: true },
-      });
-
-      return !!dbUser?.emailVerified;
-    },
   },
-
   pages: {
     signIn: "/login",
     error: "/login",
-    verifyRequest: "/verify-email",
-    newUser: "/register/complete",
   },
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
+  },
+  secret: process.env.NEXTAUTH_SECRET || "pinorpinor_secret_jwt_key_2026_super_secure_99",
+};
 
-  events: {
-    async createUser({ user }) {
-      // Create default profile and settings for new users
-      await prisma.profile.upsert({
-        where: { userId: user.id! },
-        update: {},
-        create: { userId: user.id! },
-      });
-      await prisma.settings.upsert({
-        where: { userId: user.id! },
-        update: {},
-        create: { userId: user.id! },
-      });
-    },
-  },
-});
+export function getServerSession() {
+  return getNextAuthSession(authOptions);
+}

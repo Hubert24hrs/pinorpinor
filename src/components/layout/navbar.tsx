@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Badge as _Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -49,11 +49,19 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close on route change
+  // Close on route change — use a ref to avoid calling setState synchronously inside effect body
+  const isMountedRef = React.useRef(false);
   useEffect(() => {
-    setIsMobileOpen(false);
-    setIsSearchOpen(false);
-    setIsUserMenuOpen(false);
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      return;
+    }
+    const t = setTimeout(() => {
+      setIsMobileOpen(false);
+      setIsSearchOpen(false);
+      setIsUserMenuOpen(false);
+    }, 0);
+    return () => clearTimeout(t);
   }, [pathname]);
 
   // Close user menu on outside click

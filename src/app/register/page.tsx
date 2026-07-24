@@ -1,112 +1,247 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkles, Mail, Lock, User, MapPin, Heart, ArrowRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import Link from "next/link";
+import { Heart, Mail, Lock, User, ArrowRight, Loader2, Calendar } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [role, setRole] = useState<"LADY" | "GUY">("LADY");
-  const [name, setName] = useState("");
+  const [gender, setGender] = useState<"MAN" | "WOMAN">("WOMAN");
+  const [interestedIn, setInterestedIn] = useState<"MAN" | "WOMAN">("MAN");
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [birthDate, setBirthDate] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Client-side 18+ check
+  const validateAge = (dobString: string): boolean => {
+    if (!dobString) return false;
+    const dob = new Date(dobString);
+    if (isNaN(dob.getTime())) return false;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    return age >= 18;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    router.push("/");
+    setError(null);
+
+    if (!validateAge(birthDate)) {
+      setError("You must be at least 18 years old to join Pinorpinor.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName,
+          email,
+          password,
+          gender,
+          interestedIn,
+          birthDate,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Registration failed");
+        return;
+      }
+
+      router.push("/login?registered=true");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md glass rounded-3xl p-8 border border-white/10 shadow-2xl relative">
+      <div className="w-full max-w-md bg-white rounded-3xl p-8 border border-[#E8E2DC] shadow-lg">
+        {/* Header */}
         <div className="text-center mb-6">
           <Link href="/" className="inline-flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#e91e8c] to-[#7c3aed] flex items-center justify-center shadow-lg shadow-pink-500/30">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[#C2446E] flex items-center justify-center shadow-md">
+              <Heart className="w-5 h-5 text-white fill-white" />
             </div>
-            <span className="font-['Poppins',sans-serif] font-bold text-2xl text-white">
-              Pinor<span className="gradient-text">pinor</span>
+            <span className="font-['Playfair_Display',serif] font-bold text-2xl text-[#1A1714]">
+              Pinorpinor
             </span>
           </Link>
-          <h1 className="text-xl font-semibold text-white">Join Pinorpinor</h1>
-          <p className="text-xs text-[#a1a1aa] mt-1">Select your account type to get started</p>
+          <h1 className="text-xl font-semibold text-[#1A1714]">Create Your Account</h1>
+          <p className="text-xs text-[#9C948C] mt-1">Join to discover matches and arrange dates</p>
         </div>
 
-        {/* Role Selector */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <button
-            type="button"
-            onClick={() => setRole("LADY")}
-            className={`p-3 rounded-2xl border text-center transition-all ${
-              role === "LADY"
-                ? "border-[#e91e8c] bg-[#e91e8c]/10 text-white font-semibold shadow-lg shadow-pink-500/10"
-                : "border-white/10 bg-[#16131f] text-[#a1a1aa] hover:border-white/20"
-            }`}
-          >
-            <span className="text-lg block mb-1">💃</span>
-            <span className="text-xs block">I'm a Lady</span>
-            <span className="text-[10px] text-[#71717a] block">Showcase myself</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setRole("GUY")}
-            className={`p-3 rounded-2xl border text-center transition-all ${
-              role === "GUY"
-                ? "border-[#7c3aed] bg-[#7c3aed]/10 text-white font-semibold shadow-lg shadow-purple-500/10"
-                : "border-white/10 bg-[#16131f] text-[#a1a1aa] hover:border-white/20"
-            }`}
-          >
-            <span className="text-lg block mb-1">🕺</span>
-            <span className="text-xs block">I'm a Guy</span>
-            <span className="text-[10px] text-[#71717a] block">Looking for dates</span>
-          </button>
-        </div>
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-[#FFE8E8] border border-[#F8BFC0] text-xs text-[#B83232]">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Full Name / Display Name"
-            type="text"
-            placeholder={role === "LADY" ? "e.g. Baby-Gold" : "e.g. Alex"}
-            leftIcon={<User className="w-4 h-4" />}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="bg-[#16131f] border-white/10 text-white"
-          />
+          {/* Gender Selector */}
+          <div>
+            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">I am a</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setGender("WOMAN");
+                  setInterestedIn("MAN");
+                }}
+                className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                  gender === "WOMAN"
+                    ? "border-[#C2446E] bg-[#FFF0F4] text-[#C2446E]"
+                    : "border-[#E8E2DC] bg-[#FAF8F5] text-[#5C5450] hover:border-[#D4CCC4]"
+                }`}
+              >
+                <span>💃 Woman</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGender("MAN");
+                  setInterestedIn("WOMAN");
+                }}
+                className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                  gender === "MAN"
+                    ? "border-[#C2446E] bg-[#FFF0F4] text-[#C2446E]"
+                    : "border-[#E8E2DC] bg-[#FAF8F5] text-[#5C5450] hover:border-[#D4CCC4]"
+                }`}
+              >
+                <span>🕺 Man</span>
+              </button>
+            </div>
+          </div>
 
-          <Input
-            label="Email Address"
-            type="email"
-            placeholder="you@example.com"
-            leftIcon={<Mail className="w-4 h-4" />}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="bg-[#16131f] border-white/10 text-white"
-          />
+          {/* Interested In Selector */}
+          <div>
+            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">Looking to meet</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setInterestedIn("MAN")}
+                className={`py-2 px-3 rounded-xl border text-xs font-medium flex items-center justify-center transition-all ${
+                  interestedIn === "MAN"
+                    ? "border-[#C2446E] bg-[#FFF0F4] text-[#C2446E]"
+                    : "border-[#E8E2DC] bg-[#FAF8F5] text-[#5C5450]"
+                }`}
+              >
+                Men
+              </button>
+              <button
+                type="button"
+                onClick={() => setInterestedIn("WOMAN")}
+                className={`py-2 px-3 rounded-xl border text-xs font-medium flex items-center justify-center transition-all ${
+                  interestedIn === "WOMAN"
+                    ? "border-[#C2446E] bg-[#FFF0F4] text-[#C2446E]"
+                    : "border-[#E8E2DC] bg-[#FAF8F5] text-[#5C5450]"
+                }`}
+              >
+                Women
+              </button>
+            </div>
+          </div>
 
-          <Input
-            label="Password"
-            type="password"
-            placeholder="••••••••"
-            leftIcon={<Lock className="w-4 h-4" />}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="bg-[#16131f] border-white/10 text-white"
-          />
+          {/* Name */}
+          <div>
+            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">Your Name</label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C948C]" />
+              <input
+                type="text"
+                placeholder="e.g. Sarah"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                required
+                minLength={2}
+                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#1A1714] placeholder-[#9C948C] focus:border-[#C2446E] outline-none transition-colors"
+              />
+            </div>
+          </div>
 
-          <button type="submit" className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2 mt-4">
-            Create Free Account <ArrowRight className="w-4 h-4" />
+          {/* Date of Birth (Age Gate) */}
+          <div>
+            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">
+              Date of Birth <span className="text-[#9C948C] font-normal">(Must be 18+)</span>
+            </label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C948C]" />
+              <input
+                type="date"
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
+                required
+                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#1A1714] focus:border-[#C2446E] outline-none transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C948C]" />
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#1A1714] placeholder-[#9C948C] focus:border-[#C2446E] outline-none transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C948C]" />
+              <input
+                type="password"
+                placeholder="Min 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#1A1714] placeholder-[#9C948C] focus:border-[#C2446E] outline-none transition-colors"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2 mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
+            ) : (
+              <>Create Free Account <ArrowRight className="w-4 h-4" /></>
+            )}
           </button>
         </form>
 
-        <p className="text-center text-xs text-[#a1a1aa] mt-6">
+        <p className="text-center text-xs text-[#9C948C] mt-6">
           Already have an account?{" "}
-          <Link href="/login" className="text-[#e91e8c] font-semibold hover:underline">
+          <Link href="/login" className="text-[#C2446E] font-semibold hover:underline">
             Sign In
           </Link>
         </p>

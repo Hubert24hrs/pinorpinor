@@ -1,308 +1,161 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap');
 
 /* ──────────────────────────────────────────────────────────
-   PINORPINOR — Natural Light Theme
-   Palette: Warm cream, deep rose, charcoal, ivory
+   PINORPINOR — Premium US / European Dating Platform Theme
+   Palette: Coral Crimson, Sunset Peach, Deep Graphite, Champagne Gold
    ────────────────────────────────────────────────────────── */
 
 :root {
   /* Backgrounds */
-  --bg-primary: #FAF8F5;
-  --bg-secondary: #FFFFFF;
-  --bg-card: #FFFFFF;
-  --bg-muted: #F2EDE8;
-  --bg-sidebar: #1C1A18;
+  --bg-primary: #0C0C0F;
+  --bg-secondary: #141419;
+  --bg-card: #1C1C24;
+  --bg-card-hover: #24242F;
+  --bg-muted: #22222E;
 
-  /* Accent: Deep rose — warm, not neon */
-  --accent: #C2446E;
-  --accent-dark: #9B2C52;
-  --accent-light: #F0D0DA;
-  --accent-subtle: rgba(194, 68, 110, 0.08);
+  /* Primary Brand Accent (Hinge/Tinder/Bumble vibe) */
+  --accent-coral: #FF4458;
+  --accent-coral-hover: #E03548;
+  --accent-peach: #FF6B4A;
+  --accent-gold: #FFB800;
+  --accent-purple: #8A2BE2;
+
+  --accent-gradient: linear-gradient(135deg, #FF4458 0%, #FF6B4A 100%);
+  --accent-gradient-gold: linear-gradient(135deg, #FFB800 0%, #FF8800 100%);
+  --glass-gradient: linear-gradient(180deg, rgba(255, 68, 88, 0.08) 0%, rgba(20, 20, 25, 0.6) 100%);
 
   /* Status */
-  --color-green: #2D7A4F;
-  --color-green-light: #D4EDDA;
-  --color-red: #B83232;
-  --color-gold: #B5860D;
-  --color-gold-light: #FDF3D0;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
 
-  /* Text */
-  --text-primary: #1A1714;
-  --text-secondary: #5C5450;
-  --text-muted: #9C948C;
+  /* Text Colors */
+  --text-main: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
 
   /* Borders */
-  --border: #E8E2DC;
-  --border-strong: #D4CCC4;
-  --border-accent: rgba(194, 68, 110, 0.25);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-active: rgba(255, 68, 88, 0.4);
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.05);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
-  --shadow-accent: 0 4px 20px rgba(194, 68, 110, 0.18);
+  --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  --shadow-coral: 0 8px 25px rgba(255, 68, 88, 0.35);
 
-  --sidebar-width: 220px;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Playfair Display', Georgia, serif;
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
 
 body {
   background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  line-height: 1.6;
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* ── Scrollbar ────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--bg-muted); }
-::-webkit-scrollbar-thumb { background: #D4A8B5; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: #333342;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-coral);
+}
 
-/* ── Card ─────────────────────────────────────────────────── */
-.glass {
-  background: #FFFFFF;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+/* Glassmorphism & UI Utilities */
+.glass-panel {
+  background: rgba(20, 20, 25, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-card:hover {
-  border-color: var(--border-accent);
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
+  border-color: var(--border-active);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -15px rgba(255, 68, 88, 0.25);
 }
 
-/* ── Typography ──────────────────────────────────────────── */
-.display-font {
-  font-family: 'Playfair Display', Georgia, serif;
+.gradient-btn {
+  background: var(--accent-gradient);
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: 9999px;
+  box-shadow: var(--shadow-coral);
+  transition: all 0.2s ease;
+}
+
+.gradient-btn:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 12px 30px rgba(255, 68, 88, 0.45);
+}
+
+.gradient-btn:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .gradient-text {
-  color: var(--accent);
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.gradient-text-gold {
-  color: var(--color-gold);
+.gold-gradient-text {
+  background: var(--accent-gradient-gold);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-/* ── Badges ──────────────────────────────────────────────── */
-.badge-hot {
-  background: #FFF0F4;
-  color: var(--accent-dark);
-  border: 1px solid #F4B8CB;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 20px;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  letter-spacing: 0.01em;
+/* Dating Profile Badges */
+.badge-verified {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.badge-available {
-  background: var(--color-green-light);
-  color: var(--color-green);
-  border: 1px solid #A8D5B8;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 20px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.badge-intent {
+  background: rgba(255, 68, 88, 0.12);
+  color: #FF6B7A;
+  border: 1px solid rgba(255, 68, 88, 0.25);
 }
 
-.badge-available::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  background: var(--color-green);
-  border-radius: 50%;
-  animation: pulse-green 2s infinite;
-}
-
-.badge-live {
-  background: #FFE8E8;
-  color: var(--color-red);
-  border: 1px solid #F8BFC0;
-  font-size: 9px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 20px;
-  letter-spacing: 0.06em;
-  animation: pulse-live 2s infinite;
-}
-
-/* ── Animations ─────────────────────────────────────────── */
-@keyframes pulse-green {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.75); }
-}
-
-@keyframes pulse-live {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Shimmer Skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #1C1C24 25%, #282836 50%, #1C1C24 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
 }
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.45s ease-out forwards;
-}
-
-/* ── Layout ─────────────────────────────────────────────── */
-.with-sidebar { margin-left: var(--sidebar-width); }
-
-@media (max-width: 768px) {
-  .with-sidebar { margin-left: 0; }
-}
-
-/* ── Skeleton Loader ─────────────────────────────────────── */
-.skeleton {
-  background: linear-gradient(90deg, #EDE8E3 25%, #F5F1EE 50%, #EDE8E3 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
-  border-radius: 8px;
-}
-
-/* ── No Scrollbar ────────────────────────────────────────── */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* ── Hero Section ────────────────────────────────────────── */
-.hero-gradient {
-  background: linear-gradient(135deg, #FFF8F4 0%, #FDF4F7 40%, #FFF6F0 100%);
-  border: 1px solid #F0E5E8;
-}
-
-/* ── Card Shine ──────────────────────────────────────────── */
-.card-shine {
-  position: relative;
-  overflow: hidden;
-}
-.card-shine::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    45deg,
-    transparent 40%,
-    rgba(255, 255, 255, 0.35) 50%,
-    transparent 60%
-  );
-  transform: translateX(-100%) translateY(-100%);
-  transition: transform 0.6s ease;
-}
-.card-shine:hover::after {
-  transform: translateX(100%) translateY(100%);
-}
-
-/* ── Buttons ─────────────────────────────────────────────── */
-.btn-primary {
-  background: var(--accent);
-  color: #FFFFFF;
-  border: none;
-  padding: 10px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-  box-shadow: var(--shadow-accent);
-  letter-spacing: 0.01em;
-}
-.btn-primary:hover {
-  background: var(--accent-dark);
-  box-shadow: 0 6px 28px rgba(194, 68, 110, 0.30);
-  transform: translateY(-1px);
-}
-.btn-primary:active {
-  transform: translateY(0);
-}
-
-.btn-outline {
-  background: transparent;
-  color: var(--accent);
-  border: 1.5px solid var(--accent);
-  padding: 9px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.btn-outline:hover {
-  background: var(--accent-subtle);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-secondary {
-  background: var(--bg-muted);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  padding: 9px 20px;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.btn-secondary:hover {
-  background: var(--border);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ── Input ───────────────────────────────────────────────── */
-input, textarea, select {
-  font-family: inherit;
-}
-
-/* ── Divider ─────────────────────────────────────────────── */
-.divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 0;
-}
-
-/* ── Tag / Pill ──────────────────────────────────────────── */
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--accent-light);
-  color: var(--accent-dark);
-  border: 1px solid #EABFCC;
 }

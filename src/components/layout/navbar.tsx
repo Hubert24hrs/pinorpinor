@@ -3,68 +3,35 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, Bell, Menu, X, Home, Compass, TrendingUp,
-  Users, MessageCircle, Settings, LogOut, ChevronDown,
-  Sparkles, Upload, LayoutDashboard, Zap,
+  Flame, Heart, MessageSquare, Bell, Settings, LogOut,
+  User, ShieldCheck, Sparkles, Menu, X, SlidersHorizontal
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar } from "@/components/ui/avatar";
-import { Badge as _Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
-  { href: "/",         label: "Home",     icon: Home },
-  { href: "/explore",  label: "Explore",  icon: Compass },
-  { href: "/trending", label: "Trending", icon: TrendingUp },
-  { href: "/creators", label: "Creators", icon: Users },
+  { href: "/",          label: "Home",     icon: Flame },
+  { href: "/discover",  label: "Discover", icon: Sparkles },
+  { href: "/messages",  label: "Messages", icon: MessageSquare },
+  { href: "/notifications", label: "Alerts", icon: Bell },
 ];
 
-interface NavbarProps {
-  user?: {
-    id: string;
-    name?: string | null;
-    image?: string | null;
-    username?: string | null;
-    role?: string;
-  } | null;
-  unreadNotifications?: number;
-}
-
-export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
+export function Navbar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const searchRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Scroll detection
   useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 20);
+    const onScroll = () => setIsScrolled(window.scrollY > 15);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close on route change — use a ref to avoid calling setState synchronously inside effect body
-  const isMountedRef = React.useRef(false);
-  useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
-      return;
-    }
-    const t = setTimeout(() => {
-      setIsMobileOpen(false);
-      setIsSearchOpen(false);
-      setIsUserMenuOpen(false);
-    }, 0);
-    return () => clearTimeout(t);
-  }, [pathname]);
-
-  // Close user menu on outside click
+  // Close menu on click outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -75,316 +42,185 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Focus search input when opened
-  useEffect(() => {
-    if (isSearchOpen) {
-      setTimeout(() => searchRef.current?.focus(), 100);
-    }
-  }, [isSearchOpen]);
+  const userName = session?.user?.name || "User";
+  const userInitial = userName[0]?.toUpperCase() || "P";
 
   return (
     <>
-      <nav
+      {/* ── Top Header Navigation ────────────────────────── */}
+      <header
         className={cn(
-          "fixed top-0 left-0 right-0 z-[200] transition-all duration-300",
+          "sticky top-0 z-50 w-full transition-all duration-300 border-b border-white/10",
           isScrolled
-            ? "bg-[#09090B]/80 backdrop-blur-2xl border-b border-white/8 shadow-[0_4px_32px_rgba(0,0,0,0.4)]"
-            : "bg-transparent"
+            ? "bg-[#0C0C0F]/90 backdrop-blur-xl shadow-lg"
+            : "bg-[#0C0C0F]/80 backdrop-blur-md"
         )}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* ── Logo ─────────────────────────────────── */}
-            <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
-              <div className="relative">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FF2E88] to-[#7C3AED] flex items-center justify-center shadow-[0_0_20px_rgba(255,46,136,0.4)] group-hover:shadow-[0_0_30px_rgba(255,46,136,0.6)] transition-shadow duration-300">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div>
-              </div>
-              <span className="font-[family-name:var(--font-poppins)] font-bold text-lg text-white hidden sm:block">
-                Pinor<span className="gradient-text">pinor</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#FF4458] to-[#FF6B4A] flex items-center justify-center shadow-lg shadow-[#FF4458]/30 group-hover:scale-105 transition-transform duration-200">
+              <Flame className="w-5 h-5 text-white fill-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-['Plus_Jakarta_Sans',sans-serif] font-extrabold text-xl tracking-tight text-white leading-none">
+                pinor<span className="text-[#FF4458]">pinor</span>
               </span>
-            </Link>
+              <span className="text-[10px] text-[#A1A1AA] font-medium tracking-wider uppercase leading-none mt-0.5">
+                Dating &amp; Meetups
+              </span>
+            </div>
+          </Link>
 
-            {/* ── Desktop Nav Links ─────────────────────── */}
-            <div className="hidden md:flex items-center gap-1">
-              {NAV_LINKS.map(({ href, label, icon: Icon }) => {
-                const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                      "relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200",
-                      isActive
-                        ? "text-white bg-white/8"
-                        : "text-[#A1A1AA] hover:text-white hover:bg-white/6"
-                    )}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {label}
-                    {isActive && (
-                      <motion.div
-                        layoutId="navbar-active"
-                        className="absolute inset-0 rounded-xl bg-white/8 -z-10"
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      />
-                    )}
-                  </Link>
-                );
-              })}
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-1 bg-[#141419] p-1.5 rounded-full border border-white/10">
+            {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+              const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 relative",
+                    isActive
+                      ? "text-white bg-gradient-to-r from-[#FF4458] to-[#FF6B4A] shadow-md shadow-[#FF4458]/20"
+                      : "text-[#A1A1AA] hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
+            {/* Verified Badge Header Callout */}
+            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-semibold text-emerald-400">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>18+ Verified Profiles</span>
             </div>
 
-            {/* ── Right Actions ─────────────────────────── */}
-            <div className="flex items-center gap-2">
-              {/* Search Toggle */}
-              <button
-                onClick={() => setIsSearchOpen(true)}
-                className="p-2 rounded-xl text-[#A1A1AA] hover:text-white hover:bg-white/8 transition-all duration-200"
-                aria-label="Search"
-              >
-                <Search className="w-5 h-5" />
-              </button>
+            {session ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                  className="flex items-center gap-2 p-1 rounded-full border border-white/10 bg-[#141419] hover:border-[#FF4458]/50 transition-all duration-200"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF4458] to-[#FF6B4A] text-white flex items-center justify-center font-bold text-xs shadow-md">
+                    {userInitial}
+                  </div>
+                  <span className="text-xs font-semibold text-white px-1 hidden sm:inline-block max-w-[100px] truncate">
+                    {userName}
+                  </span>
+                </button>
 
-              {user ? (
-                <>
-                  {/* Notifications */}
-                  <Link
-                    href="/notifications"
-                    className="relative p-2 rounded-xl text-[#A1A1AA] hover:text-white hover:bg-white/8 transition-all duration-200"
-                    aria-label="Notifications"
-                  >
-                    <Bell className="w-5 h-5" />
-                    {unreadNotifications > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 text-[9px] font-bold text-white bg-[#FF2E88] rounded-full flex items-center justify-center">
-                        {unreadNotifications > 99 ? "99+" : unreadNotifications}
-                      </span>
-                    )}
-                  </Link>
-
-                  {/* User Menu */}
-                  <div className="relative" ref={userMenuRef}>
-                    <button
-                      onClick={() => setIsUserMenuOpen((v) => !v)}
-                      className="flex items-center gap-2 p-1 rounded-xl hover:bg-white/8 transition-all duration-200"
+                <AnimatePresence>
+                  {isUserMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-56 bg-[#181820] rounded-2xl shadow-2xl border border-white/10 overflow-hidden z-50 p-1.5"
                     >
-                      <Avatar
-                        src={user.image}
-                        name={user.name}
-                        size="sm"
-                        showRing
-                        ringColor="primary"
-                      />
-                      <ChevronDown
-                        className={cn(
-                          "w-3.5 h-3.5 text-[#A1A1AA] transition-transform duration-200 hidden sm:block",
-                          isUserMenuOpen && "rotate-180"
-                        )}
-                      />
-                    </button>
+                      <div className="px-3 py-2.5 border-b border-white/10">
+                        <p className="text-xs font-bold text-white truncate">{userName}</p>
+                        <p className="text-[10px] text-[#A1A1AA] truncate">{session.user.email}</p>
+                      </div>
 
-                    <AnimatePresence>
-                      {isUserMenuOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                          transition={{ duration: 0.15 }}
-                          className="absolute right-0 top-full mt-2 w-56 glass rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden z-[300]"
+                      <div className="py-1">
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-xl transition-colors"
                         >
-                          {/* User Info */}
-                          <div className="px-4 py-3 border-b border-white/8">
-                            <p className="text-sm font-semibold text-white truncate">{user.name}</p>
-                            <p className="text-xs text-[#A1A1AA] truncate">@{user.username}</p>
-                          </div>
+                          <User className="w-4 h-4 text-[#FF4458]" />
+                          My Dating Profile
+                        </Link>
+                        <Link
+                          href="/settings"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                        >
+                          <Settings className="w-4 h-4 text-[#FF4458]" />
+                          Discovery Settings
+                        </Link>
+                      </div>
 
-                          <div className="p-1.5">
-                            <UserMenuItem href="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label="Dashboard" />
-                            <UserMenuItem href={`/${user.username}`} icon={<Users className="w-4 h-4" />} label="My Profile" />
-                            <UserMenuItem href="/dashboard/upload" icon={<Upload className="w-4 h-4" />} label="Upload Content" />
-                            <UserMenuItem href="/messages" icon={<MessageCircle className="w-4 h-4" />} label="Messages" />
-                            {["ADMIN", "SUPER_ADMIN", "MODERATOR"].includes(user.role || "") && (
-                              <UserMenuItem href="/admin" icon={<Zap className="w-4 h-4" />} label="Admin Panel" highlight />
-                            )}
-                          </div>
-
-                          <div className="p-1.5 border-t border-white/8">
-                            <UserMenuItem href="/settings" icon={<Settings className="w-4 h-4" />} label="Settings" />
-                            <button
-                              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors duration-150"
-                              onClick={() => { /* signOut */ }}
-                            >
-                              <LogOut className="w-4 h-4" />
-                              Sign Out
-                            </button>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Link href="/login">
-                    <Button variant="ghost" size="sm" className="hidden sm:flex">
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link href="/register">
-                    <Button variant="primary" size="sm">
-                      Get Started
-                    </Button>
-                  </Link>
-                </div>
-              )}
-
-              {/* Mobile menu toggle */}
-              <button
-                onClick={() => setIsMobileOpen((v) => !v)}
-                className="md:hidden p-2 rounded-xl text-[#A1A1AA] hover:text-white hover:bg-white/8 transition-all duration-200"
-                aria-label="Toggle menu"
-              >
-                {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
-            </div>
+                      <div className="pt-1 border-t border-white/10">
+                        <button
+                          onClick={() => signOut({ callbackUrl: "/" })}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link href="/login">
+                  <button className="px-4 py-2 rounded-full text-xs font-semibold text-[#A1A1AA] hover:text-white hover:bg-white/5 transition-all">
+                    Sign In
+                  </button>
+                </Link>
+                <Link href="/register">
+                  <button className="gradient-btn px-5 py-2 text-xs font-semibold">
+                    Join Free
+                  </button>
+                </Link>
+              </div>
+            )}
           </div>
+
         </div>
+      </header>
+
+      {/* ── Mobile Bottom Navigation Bar (Hinge / Tinder Style) ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0C0C0F]/95 backdrop-blur-xl border-t border-white/10 px-4 py-2 flex items-center justify-around">
+        {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+          const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all duration-200",
+                isActive ? "text-[#FF4458]" : "text-[#A1A1AA] hover:text-white"
+              )}
+            >
+              <Icon className={cn("w-5 h-5", isActive && "fill-[#FF4458]/20")} />
+              <span className="text-[10px] font-semibold">{label}</span>
+            </Link>
+          );
+        })}
+        {session ? (
+          <Link
+            href="/settings"
+            className={cn(
+              "flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all duration-200",
+              pathname === "/settings" ? "text-[#FF4458]" : "text-[#A1A1AA] hover:text-white"
+            )}
+          >
+            <Settings className="w-5 h-5" />
+            <span className="text-[10px] font-semibold">Settings</span>
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            className="flex flex-col items-center gap-1 py-1 px-3 rounded-2xl text-[#A1A1AA]"
+          >
+            <User className="w-5 h-5" />
+            <span className="text-[10px] font-semibold">Sign In</span>
+          </Link>
+        )}
       </nav>
-
-      {/* ── Global Search Modal ────────────────────────────── */}
-      <AnimatePresence>
-        {isSearchOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[400] flex items-start justify-center pt-20 px-4"
-            onClick={(e) => e.target === e.currentTarget && setIsSearchOpen(false)}
-          >
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSearchOpen(false)} />
-            <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.96 }}
-              transition={{ duration: 0.2 }}
-              className="relative w-full max-w-2xl glass-strong rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,0.7)] overflow-hidden"
-            >
-              <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/8">
-                <Search className="w-5 h-5 text-[#A1A1AA] flex-shrink-0" />
-                <input
-                  ref={searchRef}
-                  type="text"
-                  placeholder="Search creators, posts, hashtags..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 bg-transparent text-white placeholder:text-[#A1A1AA]/60 text-base focus:outline-none"
-                />
-                <button
-                  onClick={() => setIsSearchOpen(false)}
-                  className="p-1 rounded-lg hover:bg-white/8 text-[#A1A1AA] transition-colors"
-                >
-                  <kbd className="text-xs px-1.5 py-0.5 rounded bg-white/8 border border-white/10">Esc</kbd>
-                </button>
-              </div>
-              {!searchQuery && (
-                <div className="p-4">
-                  <p className="text-xs font-semibold text-[#A1A1AA] uppercase tracking-wider mb-3">Trending Searches</p>
-                  <div className="flex flex-wrap gap-2">
-                    {["#photography", "#digitalart", "#music", "#travel", "#fashion", "#film"].map((tag) => (
-                      <Link
-                        key={tag}
-                        href={`/search?q=${encodeURIComponent(tag)}`}
-                        onClick={() => setIsSearchOpen(false)}
-                        className="px-3 py-1.5 rounded-lg bg-white/6 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/10 transition-colors"
-                      >
-                        {tag}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Mobile Nav Drawer ──────────────────────────────── */}
-      <AnimatePresence>
-        {isMobileOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[150] md:hidden"
-          >
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileOpen(false)} />
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="absolute right-0 top-0 bottom-0 w-72 bg-[#09090B] border-l border-white/8 flex flex-col"
-            >
-              <div className="flex items-center justify-between p-4 border-b border-white/8">
-                <span className="font-bold text-lg">Menu</span>
-                <button
-                  onClick={() => setIsMobileOpen(false)}
-                  className="p-2 rounded-xl hover:bg-white/8 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="flex-1 p-4 space-y-1 overflow-y-auto">
-                {NAV_LINKS.map(({ href, label, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
-                      pathname === href
-                        ? "text-white bg-white/8"
-                        : "text-[#A1A1AA] hover:text-white hover:bg-white/6"
-                    )}
-                  >
-                    <Icon className="w-5 h-5" />
-                    {label}
-                  </Link>
-                ))}
-              </div>
-              {!user && (
-                <div className="p-4 space-y-2 border-t border-white/8">
-                  <Link href="/login" className="block">
-                    <Button variant="outline" size="md" className="w-full">Sign In</Button>
-                  </Link>
-                  <Link href="/register" className="block">
-                    <Button variant="primary" size="md" className="w-full">Get Started</Button>
-                  </Link>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
-  );
-}
-
-// ── Helper: User Menu Item ─────────────────────────────────────
-function UserMenuItem({
-  href, icon, label, highlight,
-}: { href: string; icon: React.ReactNode; label: string; highlight?: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-colors duration-150",
-        highlight
-          ? "text-[#FF2E88] hover:bg-[#FF2E88]/10"
-          : "text-[#A1A1AA] hover:text-white hover:bg-white/8"
-      )}
-    >
-      {icon}
-      {label}
-    </Link>
   );
 }

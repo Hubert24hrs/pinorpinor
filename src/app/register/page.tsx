@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Heart, Mail, Lock, User, ArrowRight, Loader2, Calendar } from "lucide-react";
+import { Flame, Mail, Lock, User, ArrowRight, Loader2, Calendar, ShieldCheck } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -59,88 +59,82 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Registration failed");
-        return;
+        throw new Error(data.error || "Failed to create account");
       }
 
+      // Redirect to login or profile onboarding
       router.push("/login?registered=true");
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md bg-white rounded-3xl p-8 border border-[#E8E2DC] shadow-lg">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <Link href="/" className="inline-flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-[#C2446E] flex items-center justify-center shadow-md">
-              <Heart className="w-5 h-5 text-white fill-white" />
-            </div>
-            <span className="font-['Playfair_Display',serif] font-bold text-2xl text-[#1A1714]">
-              Pinorpinor
-            </span>
-          </Link>
-          <h1 className="text-xl font-semibold text-[#1A1714]">Create Your Account</h1>
-          <p className="text-xs text-[#9C948C] mt-1">Join to discover matches and arrange dates</p>
+    <div className="max-w-md mx-auto space-y-6 pt-4">
+
+      {/* Header Badge */}
+      <div className="text-center space-y-2">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#FF4458] to-[#FF6B4A] flex items-center justify-center text-white mx-auto shadow-lg shadow-[#FF4458]/30">
+          <Flame className="w-6 h-6 fill-white" />
         </div>
+        <h1 className="text-2xl font-extrabold text-white tracking-tight">Create Your Account</h1>
+        <p className="text-xs text-[#A1A1AA]">Join thousands of verified singles today</p>
+      </div>
+
+      {/* Form Card */}
+      <div className="p-6 rounded-3xl bg-[#141419] border border-white/10 shadow-2xl space-y-5">
 
         {error && (
-          <div className="mb-4 p-3 rounded-xl bg-[#FFE8E8] border border-[#F8BFC0] text-xs text-[#B83232]">
+          <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-xs font-semibold text-red-400">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Gender Selector */}
-          <div>
-            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">I am a</label>
+
+          {/* I am a ... */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-[#A1A1AA] uppercase tracking-wider">I am a:</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setGender("WOMAN");
-                  setInterestedIn("MAN");
-                }}
-                className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                onClick={() => setGender("WOMAN")}
+                className={`py-2.5 rounded-xl text-xs font-bold transition-all border ${
                   gender === "WOMAN"
-                    ? "border-[#C2446E] bg-[#FFF0F4] text-[#C2446E]"
-                    : "border-[#E8E2DC] bg-[#FAF8F5] text-[#5C5450] hover:border-[#D4CCC4]"
+                    ? "bg-gradient-to-r from-[#FF4458] to-[#FF6B4A] text-white border-transparent shadow-md"
+                    : "bg-[#0C0C0F] text-[#A1A1AA] border-white/10 hover:text-white"
                 }`}
               >
-                <span>💃 Woman</span>
+                Woman
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setGender("MAN");
-                  setInterestedIn("WOMAN");
-                }}
-                className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                onClick={() => setGender("MAN")}
+                className={`py-2.5 rounded-xl text-xs font-bold transition-all border ${
                   gender === "MAN"
-                    ? "border-[#C2446E] bg-[#FFF0F4] text-[#C2446E]"
-                    : "border-[#E8E2DC] bg-[#FAF8F5] text-[#5C5450] hover:border-[#D4CCC4]"
+                    ? "bg-gradient-to-r from-[#FF4458] to-[#FF6B4A] text-white border-transparent shadow-md"
+                    : "bg-[#0C0C0F] text-[#A1A1AA] border-white/10 hover:text-white"
                 }`}
               >
-                <span>🕺 Man</span>
+                Man
               </button>
             </div>
           </div>
 
-          {/* Interested In Selector */}
-          <div>
-            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">Looking to meet</label>
+          {/* Looking to meet ... */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-[#A1A1AA] uppercase tracking-wider">Looking to meet:</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setInterestedIn("MAN")}
-                className={`py-2 px-3 rounded-xl border text-xs font-medium flex items-center justify-center transition-all ${
+                className={`py-2.5 rounded-xl text-xs font-bold transition-all border ${
                   interestedIn === "MAN"
-                    ? "border-[#C2446E] bg-[#FFF0F4] text-[#C2446E]"
-                    : "border-[#E8E2DC] bg-[#FAF8F5] text-[#5C5450]"
+                    ? "bg-gradient-to-r from-[#FF4458] to-[#FF6B4A] text-white border-transparent shadow-md"
+                    : "bg-[#0C0C0F] text-[#A1A1AA] border-white/10 hover:text-white"
                 }`}
               >
                 Men
@@ -148,10 +142,10 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setInterestedIn("WOMAN")}
-                className={`py-2 px-3 rounded-xl border text-xs font-medium flex items-center justify-center transition-all ${
+                className={`py-2.5 rounded-xl text-xs font-bold transition-all border ${
                   interestedIn === "WOMAN"
-                    ? "border-[#C2446E] bg-[#FFF0F4] text-[#C2446E]"
-                    : "border-[#E8E2DC] bg-[#FAF8F5] text-[#5C5450]"
+                    ? "bg-gradient-to-r from-[#FF4458] to-[#FF6B4A] text-white border-transparent shadow-md"
+                    : "bg-[#0C0C0F] text-[#A1A1AA] border-white/10 hover:text-white"
                 }`}
               >
                 Women
@@ -159,93 +153,108 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Name */}
-          <div>
-            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">Your Name</label>
+          {/* Display Name */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#A1A1AA]">First Name / Display Name</label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C948C]" />
+              <User className="w-4 h-4 text-[#71717A] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="e.g. Sarah"
+                required
+                placeholder="e.g. Sophia"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                required
-                minLength={2}
-                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#1A1714] placeholder-[#9C948C] focus:border-[#C2446E] outline-none transition-colors"
-              />
-            </div>
-          </div>
-
-          {/* Date of Birth (Age Gate) */}
-          <div>
-            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">
-              Date of Birth <span className="text-[#9C948C] font-normal">(Must be 18+)</span>
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C948C]" />
-              <input
-                type="date"
-                value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-                required
-                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#1A1714] focus:border-[#C2446E] outline-none transition-colors"
+                className="w-full bg-[#0C0C0F] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#71717A] focus:border-[#FF4458] focus:outline-none transition-colors"
               />
             </div>
           </div>
 
           {/* Email */}
-          <div>
-            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">Email Address</label>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#A1A1AA]">Email Address</label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C948C]" />
+              <Mail className="w-4 h-4 text-[#71717A] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
-                placeholder="you@example.com"
+                required
+                placeholder="sophia@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-[#0C0C0F] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#71717A] focus:border-[#FF4458] focus:outline-none transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Date of Birth (18+ Gated) */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-[#A1A1AA]">Date of Birth</label>
+              <span className="text-[10px] font-bold text-emerald-400">Must be 18+</span>
+            </div>
+            <div className="relative">
+              <Calendar className="w-4 h-4 text-[#71717A] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="date"
                 required
-                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#1A1714] placeholder-[#9C948C] focus:border-[#C2446E] outline-none transition-colors"
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
+                className="w-full bg-[#0C0C0F] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:border-[#FF4458] focus:outline-none transition-colors"
               />
             </div>
           </div>
 
           {/* Password */}
-          <div>
-            <label className="block text-xs font-medium text-[#5C5450] mb-1.5">Password</label>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#A1A1AA]">Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C948C]" />
+              <Lock className="w-4 h-4 text-[#71717A] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
-                placeholder="Min 8 characters"
+                required
+                minLength={6}
+                placeholder="Minimum 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                className="w-full bg-[#FAF8F5] border border-[#E8E2DC] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#1A1714] placeholder-[#9C948C] focus:border-[#C2446E] outline-none transition-colors"
+                className="w-full bg-[#0C0C0F] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#71717A] focus:border-[#FF4458] focus:outline-none transition-colors"
               />
             </div>
           </div>
 
+          {/* Terms callout */}
+          <div className="flex items-center gap-2 text-[11px] text-[#A1A1AA] pt-1">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>By signing up, you confirm you are at least 18 years of age.</span>
+          </div>
+
+          {/* Submit CTA */}
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2 mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="gradient-btn w-full py-3 text-xs font-bold flex items-center justify-center gap-2 pt-3"
           >
             {loading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
             ) : (
-              <>Create Free Account <ArrowRight className="w-4 h-4" /></>
+              <>
+                <span>Create Account</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
             )}
           </button>
+
         </form>
 
-        <p className="text-center text-xs text-[#9C948C] mt-6">
-          Already have an account?{" "}
-          <Link href="/login" className="text-[#C2446E] font-semibold hover:underline">
-            Sign In
-          </Link>
-        </p>
+        <div className="text-center pt-2 border-t border-white/10">
+          <p className="text-xs text-[#A1A1AA]">
+            Already have an account?{" "}
+            <Link href="/login" className="font-bold text-[#FF4458] hover:text-[#FF6B4A]">
+              Sign In
+            </Link>
+          </p>
+        </div>
+
       </div>
+
     </div>
   );
 }

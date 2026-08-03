@@ -1,370 +1,404 @@
-"use client";
-
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Flame, Sparkles, MapPin, Heart, ShieldCheck,
-  ChevronRight, Filter, UserCheck, Lock
+  ShieldCheck, Sparkles, MapPin, ChevronRight, Lock, Eye,
+  UserCheck, Heart, ArrowRight, CheckCircle2, Star, Users
 } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { ProfileCard, ProfileCardData } from "@/components/profile/ProfileCard";
+import { HeroSearch } from "@/components/homepage/HeroSearch";
 
-interface ProfileFromAPI {
-  id: string;
-  username: string;
-  displayName: string;
-  gender: string;
-  datingProfile: {
-    tagline: string | null;
-    city: string | null;
-    country: string | null;
-    location: string | null;
-    isAvailableToday: boolean;
-    dateTypes: string[];
-  } | null;
-  media: { storageUrl: string }[];
-}
-
-const NIGERIAN_SAMPLE_PROFILES: ProfileFromAPI[] = [
+// Curated verified sample adult women profiles (used if database is empty/unseeded)
+const FALLBACK_WOMEN_PROFILES: ProfileCardData[] = [
   {
-    id: "ng-1",
+    id: "fp-1",
     username: "zainab_lagos",
-    displayName: "Zainab, 24",
-    gender: "WOMAN",
+    displayName: "Zainab",
+    age: 24,
+    verificationStatus: "VERIFIED",
     datingProfile: {
-      tagline: "Fashion entrepreneur in VI. Love rooftop cocktails & seafood dinners.",
+      tagline: "Fashion entrepreneur in Victoria Island. Love rooftop cocktails & live jazz.",
       city: "Lagos",
       country: "Nigeria",
       location: "Victoria Island, Lagos",
       isAvailableToday: true,
-      dateTypes: ["Rooftop Cocktails", "Seafood Dinner", "VIP Event"],
+      dateTypes: ["Rooftop Cocktails", "Fine Dining", "Art Exhibitions"],
+      bio: "Creative lead living in VI. Enjoy spontaneous travel, high-end date nights, and insightful conversations.",
     },
     media: [
       { storageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80" },
     ],
   },
   {
-    id: "ng-2",
+    id: "fp-2",
     username: "chioma_abj",
-    displayName: "Chioma, 25",
-    gender: "WOMAN",
+    displayName: "Chioma",
+    age: 25,
+    verificationStatus: "VERIFIED",
     datingProfile: {
-      tagline: "Architect based in Maitama. Live jazz lover & coffee enthusiast.",
+      tagline: "Architect in Maitama. Live music enthusiast & espresso connoisseur.",
       city: "Abuja",
       country: "Nigeria",
       location: "Maitama, Abuja",
       isAvailableToday: true,
-      dateTypes: ["Coffee & Walk", "Live Jazz", "Fine Dining"],
+      dateTypes: ["Coffee & Walk", "Live Jazz", "VIP Events"],
+      bio: "Designing beautiful structures by day, exploring live music spots by night.",
     },
     media: [
       { storageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80" },
     ],
   },
   {
-    id: "ng-3",
+    id: "fp-3",
     username: "funke_lekki",
-    displayName: "Funke, 26",
-    gender: "WOMAN",
+    displayName: "Funke",
+    age: 26,
+    verificationStatus: "VERIFIED",
     datingProfile: {
-      tagline: "Brand strategist in Lekki. Passionate about art exhibitions & beach lounges.",
+      tagline: "Brand strategist in Lekki. Passionate about art galleries & beach lounges.",
       city: "Lagos",
       country: "Nigeria",
       location: "Lekki Phase 1, Lagos",
       isAvailableToday: false,
-      dateTypes: ["Beach Lounge", "Art Exhibition", "Dinner Date"],
+      dateTypes: ["Beach Lounges", "Art Galleries", "Weekend Getaways"],
+      bio: "Brand consultant living on the island. Love meeting inspiring people for memorable dates.",
     },
     media: [
       { storageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80" },
     ],
   },
   {
-    id: "ng-4",
-    username: "tunde_abj",
-    displayName: "Tunde, 28",
-    gender: "MAN",
+    id: "fp-4",
+    username: "amara_abj",
+    displayName: "Amara",
+    age: 27,
+    verificationStatus: "VERIFIED",
     datingProfile: {
-      tagline: "Software engineer in Asokoro. Enjoy deep conversations & fine dining.",
+      tagline: "Interior designer in Asokoro. Love sunset dinners & cultural events.",
       city: "Abuja",
       country: "Nigeria",
       location: "Asokoro, Abuja",
       isAvailableToday: true,
-      dateTypes: ["Fine Dining", "Cocktails & Conversation"],
+      dateTypes: ["Sunset Dinners", "Wine Tasting", "Cultural Events"],
+      bio: "Passionate about luxury interiors, classical music, and fine dining.",
     },
     media: [
-      { storageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80" },
+      { storageUrl: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=800&q=80" },
     ],
   },
 ];
 
-const NIGERIAN_CITIES = [
-  "All Nigeria", "Lagos (VI / Lekki / Ikeja)", "Abuja (Maitama / Asokoro)", "Port Harcourt", "Ibadan", "Enugu"
-];
+async function getFeaturedWomen(): Promise<ProfileCardData[]> {
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        gender: "WOMAN",
+        isActive: true,
+        isBanned: false,
+        datingProfile: {
+          isPublic: true,
+          isDiscoverable: true,
+        },
+      },
+      take: 8,
+      orderBy: [
+        { datingProfile: { isRedHot: "desc" } },
+        { datingProfile: { isAvailableToday: "desc" } },
+        { createdAt: "desc" },
+      ],
+      select: {
+        id: true,
+        displayName: true,
+        username: true,
+        birthDate: true,
+        verificationStatus: true,
+        datingProfile: {
+          select: {
+            bio: true,
+            tagline: true,
+            city: true,
+            country: true,
+            location: true,
+            dateTypes: true,
+            isAvailableToday: true,
+            isRedHot: true,
+          },
+        },
+        media: {
+          where: { isApproved: true },
+          take: 2,
+          select: { storageUrl: true },
+        },
+      },
+    });
 
-export default function HomePage() {
-  const [profiles, setProfiles] = useState<ProfileFromAPI[]>(NIGERIAN_SAMPLE_PROFILES);
-  const [selectedGender, setSelectedGender] = useState<"ALL" | "WOMAN" | "MAN">("ALL");
-  const [selectedCity, setSelectedCity] = useState("All Nigeria");
-  const [likedMap, setLikedMap] = useState<Record<string, boolean>>({});
+    if (users.length === 0) return FALLBACK_WOMEN_PROFILES;
 
-  useEffect(() => {
-    fetch("/api/discover")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.profiles && data.profiles.length > 0) {
-          setProfiles(data.profiles);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const toggleLike = (id: string) => {
-    setLikedMap((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const filteredProfiles = profiles.filter((p) => {
-    if (selectedGender !== "ALL" && p.gender !== selectedGender) return false;
-    if (selectedCity !== "All Nigeria") {
-      const cityKey = selectedCity.split(" ")[0];
-      if (p.datingProfile?.city && !p.datingProfile.city.includes(cityKey)) {
-        return false;
+    return users.map((u) => {
+      let age: number | null = null;
+      if (u.birthDate) {
+        const today = new Date();
+        age = today.getFullYear() - u.birthDate.getFullYear();
+        const m = today.getMonth() - u.birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < u.birthDate.getDate())) age--;
       }
-    }
-    return true;
-  });
+      return {
+        id: u.id,
+        username: u.username || u.id,
+        displayName: u.displayName || "Member",
+        age,
+        verificationStatus: u.verificationStatus,
+        datingProfile: u.datingProfile,
+        media: u.media,
+      };
+    });
+  } catch (error) {
+    console.error("Database fetch error for homepage:", error);
+    return FALLBACK_WOMEN_PROFILES;
+  }
+}
+
+export default async function HomePage() {
+  const featuredProfiles = await getFeaturedWomen();
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-16">
+      
+      {/* ── 1. Editorial Hero Section ─────────────────────────────── */}
+      <section className="relative overflow-hidden rounded-3xl bg-[#141216] text-white p-8 sm:p-14 md:p-16 border border-stone-800 shadow-xl">
+        {/* Glow Effects */}
+        <div className="absolute top-0 right-0 -mt-16 -mr-16 w-96 h-96 bg-[#C2446E]/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 -mb-16 w-80 h-80 bg-[#D4AF37]/15 rounded-full blur-3xl pointer-events-none" />
 
-      {/* ── Hero Banner (Royal Blue & Ocean Cyan Theme) ─────────────── */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#EFF6FF] via-[#FFFFFF] to-[#ECFEFF] p-8 sm:p-12 border border-[#BFDBFE] shadow-sm">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 bg-[#2563EB]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-10 w-80 h-80 bg-[#06B6D4]/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 max-w-2xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#2563EB]/30 text-xs font-bold text-[#2563EB] shadow-sm">
-            <Sparkles className="w-4 h-4 text-[#2563EB]" />
-            <span>Nigeria&apos;s #1 Verified Dating Platform</span>
+        <div className="relative z-10 max-w-3xl space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-[#F4E7B3]">
+            <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+            <span>Premium Women-Focused Social Discovery</span>
           </div>
 
-          <h1 className="font-['Plus_Jakarta_Sans',sans-serif] text-3xl sm:text-5xl font-extrabold text-gray-900 leading-tight tracking-tight">
-            Meet Verified Singles in <span className="gradient-text">Lagos, Abuja &amp; Beyond</span>.
+          <h1 className="font-serif-display text-3xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
+            Discover Verified Women for <span className="gold-gradient-text">Authentic Local Meetups</span>.
           </h1>
 
-          <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-            Discover real, verified Nigerian profiles for date proposals, rooftop dinners, live jazz, and high-end meetups with zero ghosting.
+          <p className="text-stone-300 text-sm sm:text-base leading-relaxed max-w-2xl">
+            Browse public profiles, short videos, interests, and preferred date activities created by approved adult women.
+            No sign-in wall — begin exploring immediately.
           </p>
 
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Link href="/discover">
-              <button className="gradient-btn px-6 py-3 text-sm flex items-center gap-2 cursor-pointer">
-                <span>Start Swiping &amp; Match</span>
+          {/* Hero Search */}
+          <div className="pt-2">
+            <HeroSearch />
+          </div>
+
+          {/* Action CTAs */}
+          <div className="flex flex-wrap items-center gap-4 pt-4">
+            <Link href="/women">
+              <button className="gradient-btn px-7 py-3.5 text-sm font-bold flex items-center gap-2 cursor-pointer">
+                <span>Browse All Women Profiles</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </Link>
-            <Link href="/register">
-              <button className="px-6 py-3 rounded-full text-sm font-semibold border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 transition-all shadow-sm cursor-pointer">
-                Create 18+ Profile
+
+            <Link href="/join">
+              <button className="gold-btn px-6 py-3.5 text-sm font-bold flex items-center gap-2 cursor-pointer">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Join as a Woman (18+)</span>
               </button>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── Nigerian Location & Gender Filter Bar ───────────────────── */}
-      <section className="p-4 rounded-2xl bg-white border border-gray-200 shadow-sm space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          
-          {/* Gender Selector */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-[#2563EB]" />
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-900">Filter By:</span>
-            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-full border border-gray-200">
-              {(["ALL", "WOMAN", "MAN"] as const).map((gender) => (
-                <button
-                  key={gender}
-                  onClick={() => setSelectedGender(gender)}
-                  className={`px-4 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                    selectedGender === gender
-                      ? "bg-gradient-to-r from-[#2563EB] to-[#06B6D4] text-white shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  {gender === "ALL" ? "All Singles" : gender === "WOMAN" ? "Women" : "Men"}
-                </button>
-              ))}
+      {/* ── 2. Featured Women Grid ─────────────────────────────────── */}
+      <section className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-stone-200 pb-4">
+          <div>
+            <div className="flex items-center gap-2 text-[#C2446E] text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Approved Members</span>
             </div>
+            <h2 className="font-serif-display text-2xl sm:text-3xl font-bold text-stone-900 mt-1">
+              Featured Women Profiles
+            </h2>
           </div>
 
-          <Link
-            href="/discover"
-            className="text-xs font-bold text-[#2563EB] hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <span>Advanced Distance &amp; Intent Filters</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+          <Link href="/women" className="text-xs font-bold text-[#C2446E] hover:underline flex items-center gap-1">
+            <span>View All Profiles</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        {/* City Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          <MapPin className="w-3.5 h-3.5 text-[#2563EB] flex-shrink-0" />
-          {NIGERIAN_CITIES.map((city) => (
-            <button
-              key={city}
-              onClick={() => setSelectedCity(city)}
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all flex-shrink-0 border cursor-pointer ${
-                selectedCity === city
-                  ? "bg-[#2563EB] text-white border-[#2563EB]"
-                  : "bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              {city}
-            </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {featuredProfiles.map((profile, idx) => (
+            <ProfileCard key={profile.id} profile={profile} priorityImage={idx < 4} />
           ))}
         </div>
       </section>
 
-      {/* ── Profile Discovery Grid ─────────────────────────────────── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
+      {/* ── 3. Explore by Location Section ───────────────────────────── */}
+      <section className="p-8 sm:p-10 rounded-3xl bg-white border border-[#E7E3DC] shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 tracking-tight">Active Candidates in Nigeria</h2>
-            <p className="text-xs text-gray-500">Verified profiles available for date night proposals</p>
+            <span className="text-[11px] font-bold text-[#C2446E] uppercase tracking-wider">Geographic Discovery</span>
+            <h2 className="font-serif-display text-2xl font-bold text-stone-900 mt-0.5">
+              Explore Profiles by City
+            </h2>
           </div>
-          <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-            ● 100% 18+ Age Verified
-          </span>
+
+          <Link href="/locations" className="text-xs font-bold text-[#C2446E] hover:underline flex items-center gap-1">
+            <span>All Locations</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {[
+            { city: "Lagos", count: 18, desc: "Victoria Island, Lekki, Ikeja", href: "/discover?city=Lagos" },
+            { city: "Abuja", count: 12, desc: "Maitama, Asokoro, Wuse", href: "/discover?city=Abuja" },
+            { city: "Port Harcourt", count: 8, desc: "GRA Phase 1 & 2", href: "/discover?city=Port+Harcourt" },
+            { city: "Ibadan", count: 5, desc: "Bodija & Oluyole", href: "/discover?city=Ibadan" },
+            { city: "Enugu", count: 4, desc: "Independence Layout", href: "/discover?city=Enugu" },
+            { city: "International", count: 15, desc: "London, Dubai, Accra & Beyond", href: "/discover?city=International" },
+          ].map((loc) => (
+            <Link key={loc.city} href={loc.href}>
+              <div className="p-5 rounded-2xl bg-[#FAF8F5] border border-[#E7E3DC] hover:border-[#C2446E] transition-all duration-200 group cursor-pointer space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-base text-stone-900 group-hover:text-[#C2446E] transition-colors">
+                    {loc.city}
+                  </span>
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-[#C2446E]">
+                    {loc.count}+ Profiles
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500 flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-stone-400" />
+                  <span>{loc.desc}</span>
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 4. How Pinorpinor Works ───────────────────────────────────── */}
+      <section className="space-y-8">
+        <div className="text-center max-w-xl mx-auto space-y-2">
+          <span className="text-[11px] font-bold text-[#C2446E] uppercase tracking-wider">Simple &amp; Safe</span>
+          <h2 className="font-serif-display text-2xl sm:text-3xl font-bold text-stone-900">
+            How Pinorpinor Works
+          </h2>
+          <p className="text-xs sm:text-sm text-stone-600">
+            Designed for privacy, high standards, and effortless social discovery.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredProfiles.map((profile) => {
-            const isLiked = !!likedMap[profile.id];
-            const mainPhoto = profile.media[0]?.storageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80";
-
+          {[
+            {
+              step: "01",
+              title: "Browse Profiles Freely",
+              desc: "Explore public profiles, approved photos, and short videos without mandatory login.",
+              icon: Eye,
+            },
+            {
+              step: "02",
+              title: "Verified Adult Women",
+              desc: "Profiles are submitted by adult women (18+) and reviewed by moderation before publication.",
+              icon: ShieldCheck,
+            },
+            {
+              step: "03",
+              title: "Connect & Inquire",
+              desc: "Use controlled contact options or meetup requests respecting member privacy settings.",
+              icon: Heart,
+            },
+            {
+              step: "04",
+              title: "Safe First Meetings",
+              desc: "Follow platform safety recommendations for secure public date-night meetups.",
+              icon: UserCheck,
+            },
+          ].map((s) => {
+            const Icon = s.icon;
             return (
-              <div
-                key={profile.id}
-                className="glass-card rounded-2xl overflow-hidden relative group flex flex-col border border-gray-200 hover:border-[#2563EB]/40 transition-all duration-300 bg-white"
-              >
-                {/* Profile Image Container */}
-                <div className="relative aspect-[3/4] w-full overflow-hidden bg-gray-100">
-                  <Image
-                    src={mainPhoto}
-                    alt={profile.displayName}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  />
-
-                  {/* Top Badges */}
-                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-                    <span className="badge-verified text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                      18+ Verified
-                    </span>
-
-                    {profile.datingProfile?.isAvailableToday && (
-                      <span className="bg-emerald-600 text-white font-extrabold text-[9px] uppercase px-2.5 py-1 rounded-full shadow-sm animate-pulse">
-                        Available Today
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Gradient Overlay for bottom text readability */}
-                  <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
-
-                  {/* Bottom Image Details */}
-                  <div className="absolute bottom-3 left-3 right-3 z-10 space-y-0.5">
-                    <div className="flex items-center justify-between">
-                      <Link
-                        href={`/${profile.username}`}
-                        className="font-bold text-base text-white hover:text-[#06B6D4] transition-colors truncate cursor-pointer"
-                      >
-                        {profile.displayName}
-                      </Link>
-                      <button
-                        onClick={() => toggleLike(profile.id)}
-                        className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all shadow-md cursor-pointer"
-                      >
-                        <Heart
-                          className={`w-4 h-4 ${isLiked ? "fill-[#2563EB] text-[#2563EB]" : "text-white"}`}
-                        />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-1 text-[11px] text-gray-200 font-medium">
-                      <MapPin className="w-3.5 h-3.5 text-[#06B6D4]" />
-                      <span>{profile.datingProfile?.location || "Lagos, Nigeria"}</span>
-                    </div>
-                  </div>
+              <div key={s.step} className="p-6 rounded-2xl bg-white border border-[#E7E3DC] shadow-sm space-y-3 relative">
+                <span className="text-2xl font-serif-display font-bold text-[#C2446E]/30">{s.step}</span>
+                <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-[#C2446E]">
+                  <Icon className="w-5 h-5" />
                 </div>
-
-                {/* Profile Card Body Details */}
-                <div className="p-4 flex-1 flex flex-col justify-between space-y-3 bg-white">
-                  <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed italic">
-                    &ldquo;{profile.datingProfile?.tagline || "Enthusiastic about memorable date nights in Lagos."}&rdquo;
-                  </p>
-
-                  {/* Date Types Pills */}
-                  {profile.datingProfile?.dateTypes && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {profile.datingProfile.dateTypes.slice(0, 2).map((type) => (
-                        <span
-                          key={type}
-                          className="badge-intent text-[10px] font-bold px-2 py-0.5 rounded-full"
-                        >
-                          {type}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <Link href={`/${profile.username}`} className="block">
-                    <button className="w-full py-2 rounded-xl bg-gray-50 hover:bg-[#2563EB] hover:text-white border border-gray-200 text-xs font-bold text-gray-800 transition-all shadow-xs cursor-pointer">
-                      View Profile
-                    </button>
-                  </Link>
-                </div>
+                <h3 className="font-bold text-base text-stone-900">{s.title}</h3>
+                <p className="text-xs text-stone-600 leading-relaxed">{s.desc}</p>
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* ── Safety & Trust Section ─────────────────────────────────── */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8 rounded-3xl bg-white border border-gray-200 shadow-sm">
+      {/* ── 5. Trust & Moderation Policy Section ─────────────────────── */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8 rounded-3xl bg-[#141216] text-white border border-stone-800 shadow-lg">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-[#2563EB] flex-shrink-0 border border-blue-100">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-950 border border-emerald-800 flex items-center justify-center text-emerald-400 flex-shrink-0">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-900">18+ Age Gated Verification</h3>
-            <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-              Every member in Nigeria verifies their age and identity before proposing dates or unlocking chat.
+            <h3 className="text-sm font-bold text-white">18+ Server Verification</h3>
+            <p className="text-xs text-stone-400 mt-1 leading-relaxed">
+              Every member verifies their age (18+) and identity before profile approval. Underage access is strictly forbidden.
             </p>
           </div>
         </div>
 
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0 border border-amber-100">
+          <div className="w-12 h-12 rounded-2xl bg-rose-950 border border-rose-800 flex items-center justify-center text-[#C2446E] flex-shrink-0">
             <Lock className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-900">Encrypted Messaging</h3>
-            <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-              Chat safely with matches, propose venue locations in Lagos or Abuja, and set meeting times securely.
+            <h3 className="text-sm font-bold text-white">Location Privacy Protected</h3>
+            <p className="text-xs text-stone-400 mt-1 leading-relaxed">
+              Public profiles only present general city or neighborhood. Home addresses and GPS coordinates are never exposed.
             </p>
           </div>
         </div>
 
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0 border border-emerald-100">
-            <UserCheck className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-amber-950 border border-amber-800 flex items-center justify-center text-[#D4AF37] flex-shrink-0">
+            <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-900">Zero Fake Accounts</h3>
-            <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-              Moderated community with instant reporting and blocking to protect every member.
+            <h3 className="text-sm font-bold text-white">Human Moderation</h3>
+            <p className="text-xs text-stone-400 mt-1 leading-relaxed">
+              Every uploaded photo and video is independently reviewed before going public. Zero tolerance for unapproved media.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* ── 6. Call to Action for Women ───────────────────────────────── */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#C2446E] to-[#7C1D38] text-white p-8 sm:p-12 text-center space-y-6 shadow-xl">
+        <div className="max-w-2xl mx-auto space-y-3">
+          <span className="text-xs font-bold uppercase tracking-widest text-[#F4E7B3]">
+            Become a Verified Member
+          </span>
+          <h2 className="font-serif-display text-3xl sm:text-4xl font-bold">
+            Are You an Adult Woman Looking for Quality Connections?
+          </h2>
+          <p className="text-xs sm:text-sm text-stone-200 leading-relaxed">
+            Create your approved public profile, present your photos, short videos, and date-night preferences, and control your privacy on your own terms.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+          <Link href="/join">
+            <button className="gold-btn px-8 py-3.5 text-sm font-extrabold cursor-pointer">
+              Create Your Profile (18+)
+            </button>
+          </Link>
+          <Link href="/safety">
+            <button className="px-6 py-3.5 rounded-full border border-white/30 text-xs font-bold text-white hover:bg-white/10 transition-colors cursor-pointer">
+              Read Community Guidelines
+            </button>
+          </Link>
         </div>
       </section>
 

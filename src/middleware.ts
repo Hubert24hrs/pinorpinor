@@ -2,21 +2,27 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
+// Routes that require authentication (members/admins only)
 const PROTECTED_ROUTES = [
   "/dashboard",
-  "/discover",
   "/messages",
   "/notifications",
   "/settings",
   "/admin",
+  "/match",
 ];
 
-const AUTH_ROUTES = [
+// Routes only for unauthenticated users (redirect to dashboard if logged in)
+const AUTH_ONLY_ROUTES = [
   "/login",
-  "/register",
   "/forgot-password",
   "/reset-password",
+  "/join",
 ];
+
+// Public routes — never redirect these regardless of auth state
+// /discover, /women, /locations, /profile, /about, /safety, /privacy, /terms, /contact
+// are all public by default (not in PROTECTED_ROUTES)
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -28,19 +34,33 @@ export default async function middleware(request: NextRequest) {
 
   const isAuthenticated = !!token;
 
-  if (AUTH_ROUTES.some((route) => pathname.startsWith(route))) {
+  // /register is now an alias redirect to /join — handle in the page file
+  // but keep it out of auth protection
+
+  // Authenticated users don't need to see auth-only pages
+  if (AUTH_ONLY_ROUTES.some((route) => pathname.startsWith(route))) {
     if (isAuthenticated) {
-      return NextResponse.redirect(new URL("/discover", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     return NextResponse.next();
   }
 
+  // Protected routes require authentication
   if (PROTECTED_ROUTES.some((route) => pathname.startsWith(route))) {
     if (!isAuthenticated) {
       return NextResponse.redirect(
         new URL(`/login?callbackUrl=${encodeURIComponent(pathname)}`, request.url)
       );
     }
+
+    // Extra: admin routes require admin/moderator role
+    if (pathname.startsWith("/admin")) {
+      const role = token?.role as string | undefined;
+      if (!role || !["ADMIN", "SUPER_ADMIN", "MODERATOR"].includes(role)) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    }
+
     return NextResponse.next();
   }
 
@@ -48,5 +68,5 @@ export default async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/).*)" ],
 };

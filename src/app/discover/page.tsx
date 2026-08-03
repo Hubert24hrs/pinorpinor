@@ -1,339 +1,207 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
-  Heart, X, Star, MapPin, ShieldCheck, Sparkles, Loader2,
-  MessageCircle, SlidersHorizontal, User
+  Sparkles, Filter, Search, MapPin, RefreshCw, ShieldCheck,
+  SlidersHorizontal, ChevronDown, Check
 } from "lucide-react";
+import { ProfileGrid } from "@/components/profile/ProfileGrid";
+import { ProfileCardData } from "@/components/profile/ProfileCard";
 
-interface Candidate {
-  id: string;
-  displayName: string;
-  username: string;
-  age: number | null;
-  verificationStatus: string;
-  datingProfile: {
-    bio: string | null;
-    tagline: string | null;
-    city: string | null;
-    country: string | null;
-    location: string | null;
-    height: string | null;
-    relationshipIntent: string | null;
-    dateTypes: string[];
-    isAvailableToday: boolean;
-  } | null;
-  media: { storageUrl: string }[];
-}
-
-const NIGERIAN_CANDIDATES: Candidate[] = [
-  {
-    id: "cand-ng-1",
-    displayName: "Zainab, 24",
-    username: "zainab_lagos",
-    age: 24,
-    verificationStatus: "VERIFIED",
-    datingProfile: {
-      bio: "Fashion entrepreneur based in Victoria Island. Passionate about art exhibitions, rooftop cocktails, and seafood dining.",
-      tagline: "Rooftop cocktails & seafood dinners in VI",
-      city: "Lagos",
-      country: "Nigeria",
-      location: "Victoria Island, Lagos",
-      height: "5'8\"",
-      relationshipIntent: "Serious Relationship",
-      dateTypes: ["Rooftop Cocktails", "Seafood Dinner", "VIP Event"],
-      isAvailableToday: true,
-    },
-    media: [
-      { storageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80" },
-      { storageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80" },
-    ],
-  },
-  {
-    id: "cand-ng-2",
-    displayName: "Chioma, 25",
-    username: "chioma_abj",
-    age: 25,
-    verificationStatus: "VERIFIED",
-    datingProfile: {
-      bio: "Architect living in Maitama, Abuja. Love live jazz nights, matcha lattes, and sunset dinners.",
-      tagline: "Live jazz & fine dining in Abuja",
-      city: "Abuja",
-      country: "Nigeria",
-      location: "Maitama, Abuja",
-      height: "5'7\"",
-      relationshipIntent: "Dating to Marry",
-      dateTypes: ["Coffee & Walk", "Live Jazz", "Fine Dining"],
-      isAvailableToday: true,
-    },
-    media: [
-      { storageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80" },
-    ],
-  },
-];
-
-export default function DiscoverPage() {
-  const { status } = useSession();
+function DiscoverContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [candidates, setCandidates] = useState<Candidate[]>(NIGERIAN_CANDIDATES);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [swiping, setSwiping] = useState(false);
+  const [profiles, setProfiles] = useState<ProfileCardData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const [matchModal, setMatchModal] = useState<{
-    matched: boolean;
-    matchId?: string;
-    conversationId?: string;
-    partnerName?: string;
-  } | null>(null);
+  // Filter state
+  const [cityFilter, setCityFilter] = useState(searchParams?.get("city") || "ALL");
+  const [verifiedFilter, setVerifiedFilter] = useState(searchParams?.get("verified") === "true");
+  const [searchQuery, setSearchQuery] = useState(searchParams?.get("q") || "");
+  const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    fetch("/api/discover")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.candidates && data.candidates.length > 0) {
-          setCandidates(data.candidates);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const currentCandidate = candidates[currentIndex];
-
-  const handleSwipe = async (type: "LIKE" | "DISLIKE" | "SUPERLIKE") => {
-    if (!currentCandidate || swiping) return;
-    setSwiping(true);
-
+  const fetchProfiles = async () => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/swipe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetUserId: currentCandidate.id,
-          swipeType: type,
-        }),
-      });
+      const params = new URLSearchParams();
+      if (cityFilter && cityFilter !== "ALL") params.set("city", cityFilter);
+      if (verifiedFilter) params.set("verified", "true");
+      params.set("page", page.toString());
 
+      const res = await fetch(`/api/public/profiles?${params.toString()}`);
       const data = await res.json();
 
-      if (data.isMatch) {
-        setMatchModal({
-          matched: true,
-          matchId: data.matchId,
-          conversationId: data.conversationId,
-          partnerName: currentCandidate.displayName,
-        });
-      } else {
-        setCurrentIndex((prev) => prev + 1);
+      let results: ProfileCardData[] = data.profiles || [];
+
+      // Optional text search filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        results = results.filter(
+          (p) =>
+            p.displayName.toLowerCase().includes(q) ||
+            p.username.toLowerCase().includes(q) ||
+            p.datingProfile?.city?.toLowerCase().includes(q) ||
+            p.datingProfile?.tagline?.toLowerCase().includes(q) ||
+            p.datingProfile?.dateTypes?.some((t) => t.toLowerCase().includes(q))
+        );
       }
-    } catch {
-      setCurrentIndex((prev) => prev + 1);
+
+      setProfiles(results);
+      setTotalCount(data.pagination?.total || results.length);
+    } catch (error) {
+      console.error("Error fetching discover profiles:", error);
+      setProfiles([]);
     } finally {
-      setSwiping(false);
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="max-w-xl mx-auto space-y-6">
+  useEffect(() => {
+    fetchProfiles();
+  }, [cityFilter, verifiedFilter, page]);
 
-      {/* Discover Header */}
-      <div className="flex items-center justify-between p-4 rounded-2xl bg-white border border-gray-200 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-[#2563EB]" />
-          <h1 className="text-lg font-bold text-gray-900 tracking-tight">Discover Singles</h1>
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchProfiles();
+  };
+
+  const resetFilters = () => {
+    setCityFilter("ALL");
+    setVerifiedFilter(false);
+    setSearchQuery("");
+    setPage(1);
+    router.push("/discover");
+  };
+
+  const CITIES = [
+    "ALL",
+    "Lagos",
+    "Abuja",
+    "Port Harcourt",
+    "Ibadan",
+    "Enugu",
+    "Benin City",
+    "International",
+  ];
+
+  return (
+    <div className="space-y-8">
+      {/* Header Banner */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-[#141216] text-white border border-stone-800 shadow-md space-y-3">
+        <div className="flex items-center gap-2 text-[#F4E7B3] text-xs font-bold uppercase tracking-wider">
+          <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+          <span>Women Profile Directory</span>
+        </div>
+        <h1 className="font-serif-display text-2xl sm:text-4xl font-bold text-white">
+          Discover Approved Women Members
+        </h1>
+        <p className="text-xs sm:text-sm text-stone-400 max-w-xl">
+          Browse verified adult women profiles across Nigeria and internationally.
+          Filter by city, interests, and verification status.
+        </p>
+      </div>
+
+      {/* Filter & Search Bar */}
+      <div className="bg-white rounded-2xl p-4 border border-[#E7E3DC] shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          
+          {/* Text Search */}
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 w-full">
+            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by name, city or interest..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#FAF8F5] border border-[#E7E3DC] rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:border-[#C2446E] outline-none"
+            />
+          </form>
+
+          {/* Verification Filter Pill */}
+          <button
+            onClick={() => setVerifiedFilter((prev) => !prev)}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 cursor-pointer ${
+              verifiedFilter
+                ? "bg-emerald-50 text-emerald-800 border-emerald-200 shadow-xs"
+                : "bg-[#FAF8F5] text-stone-700 border-[#E7E3DC] hover:border-stone-400"
+            }`}
+          >
+            <ShieldCheck className={`w-4 h-4 ${verifiedFilter ? "text-emerald-600" : "text-stone-400"}`} />
+            <span>Verified 18+ Only</span>
+            {verifiedFilter && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+          </button>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
-          <SlidersHorizontal className="w-4 h-4 text-[#2563EB]" />
-          <span>Location: <strong className="text-gray-900">Lagos &amp; Abuja</strong></span>
+        {/* City Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar border-t border-stone-100">
+          <MapPin className="w-3.5 h-3.5 text-[#C2446E] flex-shrink-0" />
+          <span className="text-[11px] font-bold text-stone-500 flex-shrink-0 uppercase">City:</span>
+          {CITIES.map((c) => (
+            <button
+              key={c}
+              onClick={() => {
+                setCityFilter(c);
+                setPage(1);
+              }}
+              className={`px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 border cursor-pointer transition-all ${
+                cityFilter === c
+                  ? "bg-[#C2446E] text-white border-[#C2446E] shadow-xs"
+                  : "bg-[#FAF8F5] text-stone-700 border-[#E7E3DC] hover:border-stone-400"
+              }`}
+            >
+              {c === "ALL" ? "All Locations" : c}
+            </button>
+          ))}
+
+          {(cityFilter !== "ALL" || verifiedFilter || searchQuery) && (
+            <button
+              onClick={resetFilters}
+              className="text-xs font-bold text-[#C2446E] hover:underline flex items-center gap-1 flex-shrink-0 ml-auto cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main Swipe Deck Container */}
-      {!currentCandidate || currentIndex >= candidates.length ? (
-        <div className="p-12 text-center rounded-3xl bg-white border border-gray-200 space-y-4 shadow-sm">
-          <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB] mx-auto">
-            <Sparkles className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900">You&apos;ve seen everyone nearby!</h2>
-          <p className="text-xs text-gray-600 max-w-xs mx-auto">
-            Expand your discovery filters or check back later for new verified profiles in Nigeria.
-          </p>
-          <button
-            onClick={() => setCurrentIndex(0)}
-            className="gradient-btn px-6 py-2.5 text-xs font-semibold cursor-pointer"
-          >
-            Review Candidates Again
-          </button>
-        </div>
-      ) : (
-        <div className="relative glass-card rounded-3xl overflow-hidden border border-gray-200 shadow-md bg-white">
-          
-          {/* Main Photo Card */}
-          <div className="relative aspect-[3/4] w-full overflow-hidden bg-gray-100">
-            <Image
-              src={
-                currentCandidate.media[0]?.storageUrl ||
-                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80"
-              }
-              alt={currentCandidate.displayName}
-              fill
-              className="object-cover"
-              priority
-            />
+      {/* Grid Results Header */}
+      <div className="flex items-center justify-between px-1">
+        <p className="text-xs font-semibold text-stone-600">
+          Showing <strong className="text-stone-900">{profiles.length}</strong> approved women profiles
+        </p>
 
-            {/* Overlays */}
-            <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
+        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-[#C2446E]">
+          ● Women Only (18+)
+        </span>
+      </div>
 
-            {/* Top Badges */}
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-              <span className="badge-verified text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                18+ Verified
-              </span>
-
-              {currentCandidate.datingProfile?.isAvailableToday && (
-                <span className="bg-emerald-600 text-white font-extrabold text-[10px] uppercase px-3 py-1 rounded-full shadow-sm animate-pulse">
-                  Available Today
-                </span>
-              )}
-            </div>
-
-            {/* Profile Info Overlay */}
-            <div className="absolute bottom-4 left-4 right-4 z-10 space-y-2 text-white">
-              <div className="flex items-baseline gap-2">
-                <Link
-                  href={`/${currentCandidate.username}`}
-                  className="text-2xl font-extrabold text-white hover:text-[#06B6D4] transition-colors tracking-tight cursor-pointer"
-                >
-                  {currentCandidate.displayName}
-                </Link>
-                {currentCandidate.datingProfile?.height && (
-                  <span className="text-xs text-gray-200 font-semibold">
-                    {currentCandidate.datingProfile.height}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-1.5 text-xs text-gray-200 font-medium">
-                <MapPin className="w-4 h-4 text-[#06B6D4]" />
-                <span>{currentCandidate.datingProfile?.location || "Lagos, Nigeria"}</span>
-              </div>
-
-              {currentCandidate.datingProfile?.tagline && (
-                <p className="text-xs text-white/90 font-medium italic">
-                  &ldquo;{currentCandidate.datingProfile.tagline}&rdquo;
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Extended Bio & Intent */}
-          <div className="p-5 space-y-4 bg-white">
-            {currentCandidate.datingProfile?.bio && (
-              <p className="text-xs text-gray-600 leading-relaxed">
-                {currentCandidate.datingProfile.bio}
-              </p>
-            )}
-
-            {/* Intent & Date Types */}
-            {currentCandidate.datingProfile?.dateTypes && (
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  Preferred Date Types:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {currentCandidate.datingProfile.dateTypes.map((type) => (
-                    <span
-                      key={type}
-                      className="badge-intent text-xs font-bold px-3 py-1 rounded-full"
-                    >
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Swipe Action Buttons Bar */}
-            <div className="pt-3 flex items-center justify-center gap-6">
-              {/* Pass / Dislike */}
-              <button
-                onClick={() => handleSwipe("DISLIKE")}
-                disabled={swiping}
-                className="w-14 h-14 rounded-full bg-gray-50 border border-gray-200 hover:border-red-500 text-red-500 flex items-center justify-center shadow-sm hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                aria-label="Pass"
-              >
-                <X className="w-7 h-7" />
-              </button>
-
-              {/* Superlike */}
-              <button
-                onClick={() => handleSwipe("SUPERLIKE")}
-                disabled={swiping}
-                className="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shadow-sm hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                aria-label="Superlike"
-              >
-                <Star className="w-6 h-6 fill-amber-400/20" />
-              </button>
-
-              {/* Like / Match */}
-              <button
-                onClick={() => handleSwipe("LIKE")}
-                disabled={swiping}
-                className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#06B6D4] text-white flex items-center justify-center shadow-lg shadow-[#2563EB]/30 hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                aria-label="Like"
-              >
-                <Heart className="w-8 h-8 fill-white" />
-              </button>
-            </div>
-
-          </div>
-
-        </div>
-      )}
-
-      {/* Match Celebration Modal */}
-      {matchModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="max-w-sm w-full bg-white border border-gray-200 rounded-3xl p-6 text-center space-y-5 shadow-2xl">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#06B6D4] flex items-center justify-center text-white mx-auto shadow-lg shadow-[#2563EB]/30 animate-bounce">
-              <Heart className="w-8 h-8 fill-white" />
-            </div>
-
-            <div>
-              <h3 className="text-2xl font-extrabold text-gray-900">It&apos;s a Match!</h3>
-              <p className="text-xs text-gray-600 mt-1">
-                You and <strong className="text-gray-900">{matchModal.partnerName}</strong> liked each other.
-              </p>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <Link href={`/messages/${matchModal.conversationId}`}>
-                <button className="gradient-btn w-full py-3 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer">
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Send a Message</span>
-                </button>
-              </Link>
-              <button
-                onClick={() => {
-                  setMatchModal(null);
-                  setCurrentIndex((prev) => prev + 1);
-                }}
-                className="w-full py-2.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all cursor-pointer"
-              >
-                Keep Swiping
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Profile Grid */}
+      <ProfileGrid
+        profiles={profiles}
+        loading={loading}
+        emptyTitle="No Women Profiles Match Your Filters"
+        emptyDescription="We couldn't find any approved profiles matching your search parameters. Try clearing your filters or selecting a different location."
+        onResetFilters={resetFilters}
+      />
     </div>
+  );
+}
+
+export default function DiscoverPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 text-center text-stone-500">
+          <div className="w-8 h-8 rounded-full border-2 border-[#C2446E] border-t-transparent animate-spin mx-auto mb-2" />
+          <p className="text-xs font-semibold">Loading discovery deck...</p>
+        </div>
+      }
+    >
+      <DiscoverContent />
+    </Suspense>
   );
 }
